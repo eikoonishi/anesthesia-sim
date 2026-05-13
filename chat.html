@@ -270,19 +270,35 @@
   .send-btn:hover { background: #3a7bc8; }
   .send-btn:disabled { background: #6c757d; cursor: not-allowed; }
 
-  /* === API key setup === */
+  /* === API key setup(折りたたみ式) === */
   .api-setup {
     background: #1a2332;
     border-radius: 10px;
-    padding: 14px;
+    padding: 10px 14px;
     margin-bottom: 12px;
     border: 1px solid rgba(255,255,255,0.1);
   }
   .api-setup-title {
     font-size: 13px;
     font-weight: 700;
-    margin-bottom: 8px;
     color: #aebcd0;
+    cursor: pointer;
+    user-select: none;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .api-setup-title .toggle-arrow { transition: transform 0.2s; font-size: 11px; }
+  .api-setup.expanded .api-setup-title .toggle-arrow { transform: rotate(180deg); }
+  .api-setup-body { display: none; margin-top: 12px; }
+  .api-setup.expanded .api-setup-body { display: block; }
+  .iphone-note {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(245,166,35,0.12);
+    border-left: 3px solid #f5a623;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #ffd93d;
+    line-height: 1.6;
   }
   .api-setup-desc {
     font-size: 12px;
@@ -376,21 +392,26 @@
     <div class="wave-cell"><canvas id="eeg"></canvas></div>
   </div>
 
-  <div class="api-setup">
-    <div class="api-setup-title">
-      <span class="alarm-light"></span>Anthropic API Key(任意・LLM応答を有効化)
+  <div class="api-setup" id="apiSetup">
+    <div class="api-setup-title" onclick="toggleApiPanel()">
+      <span><span class="alarm-light"></span>🔧 詳細設定(心拍音・APIキー)</span>
+      <span class="toggle-arrow">▼</span>
     </div>
-    <div class="api-setup-desc">
-      指導医AIとして Claude が文脈を理解して応答します。
-      キーなしでも内蔵のキーワードマッチで動作します。
-      キーは <b>このブラウザにのみ保存</b>(localStorage)、外部送信なし。
+    <div class="api-setup-body">
+      <button class="sound-toggle-btn" id="soundToggle" onclick="toggleSound()" style="margin-top:0;">🔇 心拍音 OFF</button>
+      <div class="iphone-note">
+        📱 <b>iPhone</b>:本体側面のサイレントモード(マナーモード)を解除してください。
+      </div>
+      <div style="margin-top:14px; font-size:12px; color:#aebcd0; line-height:1.6;">
+        <b>Anthropic API Key(任意)</b>:設定すると Claude が文脈的に応答します。
+        未設定なら内蔵ルールベースで動作。キーはブラウザ内のみ保存(外部送信なし)。
+      </div>
+      <div class="api-key-row" style="margin-top:6px;">
+        <input class="api-key-input" id="apiKey" type="password" placeholder="sk-ant-..." value="">
+        <button class="send-btn" style="padding:0 14px; height:36px;" onclick="saveApiKey()">保存</button>
+      </div>
+      <div class="api-status" id="apiStatus">未設定 → ルールベースで動作</div>
     </div>
-    <div class="api-key-row">
-      <input class="api-key-input" id="apiKey" type="password" placeholder="sk-ant-..." value="">
-      <button class="send-btn" style="padding:0 14px; height:36px;" onclick="saveApiKey()">保存</button>
-    </div>
-    <div class="api-status" id="apiStatus">未設定 → ルールベースで動作</div>
-    <button class="sound-toggle-btn" id="soundToggle" onclick="toggleSound()">🔇 心拍音 OFF</button>
   </div>
 
   <div class="chat-container">
@@ -1809,6 +1830,10 @@ function toggleHint() {
   document.getElementById("hintPanel").classList.toggle("show");
 }
 
+function toggleApiPanel() {
+  document.getElementById("apiSetup").classList.toggle("expanded");
+}
+
 // =====================================================
 // API key
 // =====================================================
@@ -1846,9 +1871,11 @@ window.addEventListener("load", () => {
     document.getElementById("apiKey").value = state.apiKey;
     setApiStatus("✓ Claude (Haiku 4.5) で応答", "ok");
   }
-  // 心拍音 UI 初期化(localStorageから復元)
+  // 心拍音 UI 初期化
+  // 注:iOSではユーザー操作なしで音を鳴らせないため、自動起動はしない。
+  //    localStorage の状態は無視し、毎回 OFF からスタート。ユーザーが詳細設定を開いてトグル必要。
+  state.soundEnabled = false;
   updateSoundUI();
-  if (state.soundEnabled) startPulseLoop();
   // 波形 canvas を初期化(layout完了を待つため1フレーム遅延)
   requestAnimationFrame(() => {
     reinitCanvases();
