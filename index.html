@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麻酔管理シミュレーション</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #2c3e50;
+    color: #1a1a1a;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { max-width: 760px; margin: 0 auto; padding: 12px; padding-bottom: 80px; }
+
+  /* ===== OR モニター ===== */
+  .monitor {
+    background: #000;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 4px 12px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: white;
+    margin-bottom: 12px;
+    position: sticky;
+    top: 8px;
+    z-index: 20;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: background 0.3s;
+  }
+  .monitor.alarm-active { animation: alarmFlash 0.6s 4; }
+  @keyframes alarmFlash {
+    0%, 100% { background: #000; }
+    50% { background: #4a0000; }
+  }
+  .label-cell {
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 4px 0;
+  }
+  .label-cell .name { font-size: 10px; opacity: 0.7; letter-spacing: 0.5px; font-weight: 600; }
+  .label-cell .unit { font-size: 9px; opacity: 0.5; margin-top: 1px; }
+  .label-cell .value {
+    font-size: 34px; font-weight: 700;
+    font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
+    line-height: 1; margin-top: 3px;
+    transition: color 0.3s;
+  }
+  .label-cell .sub { font-size: 14px; opacity: 0.85; line-height: 1; margin-top: 2px; }
+  .value.low { color: #ff4d4d !important; animation: pulseLow 1s infinite; }
+  @keyframes pulseLow { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .hr    { color: #00ff66; }
+  .nibp  { color: #ff7ab8; }
+  .spo2  { color: #00d4ff; }
+  .etco2 { color: #ffffff; }
+  .bis   { color: #ff9933; }
+
+  .wave-cell {
+    height: 58px;
+    background: #000;
+    overflow: hidden;
+  }
+  .wave-cell.empty { background: #000; }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  .monitor-foot {
+    grid-column: span 2;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; opacity: 0.7; padding-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 4px;
+  }
+  .mute-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.3);
+    color: white; padding: 3px 8px; border-radius: 4px;
+    font-size: 11px; cursor: pointer; font-family: inherit;
+  }
+
+  /* ===== カード ===== */
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .step-meta {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .step-id {
+    background: #4a90e2; color: white; padding: 2px 10px;
+    border-radius: 4px; font-size: 12px; font-weight: 700;
+  }
+  .step-id.narration { background: #6c757d; }
+  .step-id.alarm { background: #c0392b; animation: alarmPulse 0.8s infinite; }
+  @keyframes alarmPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .step-scene { font-size: 12px; color: #6c757d; }
+
+  .case-setup {
+    background: #f0f4f8;
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    border-left: 4px solid #4a90e2;
+    font-size: 13px;
+    line-height: 1.75;
+  }
+  .case-setup b { color: #1a2332; }
+
+  .step-prompt {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    background: #fff8e1;
+    border-radius: 8px;
+    border-left: 4px solid #f5a623;
+    color: #1a2332;
+  }
+
+  .narration {
+    background: #e8f4fd;
+    border-left: 4px solid #4a90e2;
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    line-height: 1.75;
+    color: #2c3e50;
+  }
+  .narration.alarm {
+    background: #ffebee;
+    border-left-color: #c0392b;
+    color: #6e0d0d;
+    font-weight: 600;
+    animation: shake 0.4s 2;
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  .narration.deterioration {
+    background: #fff3e0;
+    border-left-color: #e67e22;
+    color: #6e3008;
+  }
+  .narration.info {
+    background: #e8f5e9;
+    border-left-color: #27ae60;
+    color: #1b4d2b;
+  }
+
+  /* ===== 選択肢 ===== */
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice {
+    background: white;
+    border: 2px solid #d0d7de;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 48px;
+    font-family: inherit;
+    line-height: 1.5;
+  }
+  .choice:hover { border-color: #4a90e2; background: #f5f9ff; }
+  .choice:active { transform: scale(0.99); }
+  .choice.watch-wait::before { content: "⏸ "; color: #6c757d; }
+
+  .drug-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .drug-btn {
+    background: white;
+    border: 2px solid #d0d7de;
+    border-radius: 10px;
+    padding: 10px 8px;
+    font-size: 13px;
+    cursor: pointer;
+    min-height: 52px;
+    font-family: inherit;
+    text-align: center;
+    transition: all 0.15s;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+  .drug-btn:hover { border-color: #4a90e2; background: #f5f9ff; }
+  .drug-btn .drug-cat { display: block; font-size: 10px; color: #6c757d; margin-top: 2px; font-weight: normal; }
+
+  /* ===== モーダル ===== */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: flex-end;
+    z-index: 100;
+    animation: fadeIn 0.2s;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: white;
+    border-radius: 18px 18px 0 0;
+    padding: 22px 18px;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    max-height: 88vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); } to { transform: translateY(0); } }
+  .modal-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+  .modal-title.correct { color: #27ae60; }
+  .modal-title.wrong { color: #c0392b; }
+  .modal-title.partial { color: #d68910; }
+  .feedback-text { font-size: 14px; margin-bottom: 12px; line-height: 1.75; }
+  .feedback-text b { color: #1a2332; }
+  .patient-says {
+    background: #fff8e1;
+    border-left: 4px solid #f5a623;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .patient-says::before { content: "🗣 患者: "; font-weight: 700; color: #856404; }
+
+  /* ===== ボタン ===== */
+  .btn {
+    background: #4a90e2;
+    color: white;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 6px;
+    min-height: 48px;
+    font-family: inherit;
+  }
+  .btn:hover { background: #3a7bc8; }
+  .btn.secondary { background: #6c757d; }
+  .btn.success { background: #27ae60; }
+  .btn.ghost { background: transparent; color: #6c757d; border: 1px solid #d0d7de; }
+
+  /* ===== ヒーロー ===== */
+  .hero {
+    background: white;
+    border-radius: 12px;
+    padding: 28px 20px 20px;
+    text-align: center;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .hero h1 { font-size: 26px; margin-bottom: 6px; color: #1a2332; }
+  .hero .subtitle { color: #6c757d; font-size: 14px; }
+
+  .disclaimer {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    text-align: left;
+    line-height: 1.6;
+  }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; background: #f0f4f8; border-radius: 8px;
+    margin-bottom: 12px; font-size: 14px;
+  }
+  .toggle-switch {
+    position: relative; display: inline-block; width: 44px; height: 24px;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: #ccc; transition: 0.2s; border-radius: 24px;
+  }
+  .toggle-slider:before {
+    position: absolute; content: ""; height: 18px; width: 18px;
+    left: 3px; bottom: 3px; background: white; transition: 0.2s; border-radius: 50%;
+  }
+  input:checked + .toggle-slider { background: #4a90e2; }
+  input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+  /* ===== 参考資料 ===== */
+  .refs {
+    background: #f8f9fa;
+    border-left: 3px solid #6c757d;
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  .refs-title { font-weight: 700; margin-bottom: 8px; color: #495057; }
+  .ref-item { margin-bottom: 6px; line-height: 1.5; }
+  .badge {
+    display: inline-block; font-size: 10px; padding: 1px 6px;
+    border-radius: 3px; margin-right: 6px; font-weight: 700;
+    vertical-align: middle;
+  }
+  .badge.verified { background: #d4edda; color: #155724; }
+  .badge.check { background: #fff3cd; color: #856404; }
+
+  /* ===== 診断宣言フェーズ ===== */
+  .diagnosis-banner {
+    background: linear-gradient(135deg, #c0392b 0%, #8e2018 100%);
+    color: white;
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .diagnosis-banner h2 { font-size: 18px; margin-bottom: 4px; }
+  .diagnosis-banner p { font-size: 13px; opacity: 0.9; }
+
+  /* ===== 進捗 ===== */
+  .progress {
+    display: flex; gap: 3px; margin-bottom: 10px;
+  }
+  .progress-dot {
+    flex: 1; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px;
+  }
+  .progress-dot.done { background: #27ae60; }
+  .progress-dot.partial { background: #f5a623; }
+  .progress-dot.wrong { background: #e74c3c; }
+  .progress-dot.current { background: #4a90e2; }
+  .progress-dot.narration { background: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+// ============================================================
+// 薬剤マスタ
+// ============================================================
+const DRUGS = {
+  oxygen:        { name: "酸素",          cat: "ガス" },
+  air:           { name: "空気",          cat: "ガス" },
+  n2o:           { name: "亜酸化窒素",    cat: "ガス" },
+  sevo:          { name: "セボフルラン",   cat: "揮発性" },
+  des:           { name: "デスフルラン",   cat: "揮発性" },
+  propofol:      { name: "プロポフォール", cat: "鎮静薬" },
+  remi:          { name: "レミフェンタニル", cat: "オピオイド" },
+  fenta:         { name: "フェンタニル",   cat: "オピオイド" },
+  roc:           { name: "ロクロニウム",   cat: "筋弛緩薬" },
+  sugam:         { name: "スガマデックス", cat: "拮抗薬" },
+  ephedrine:     { name: "エフェドリン",   cat: "昇圧薬" },
+  phenylephrine: { name: "フェニレフリン", cat: "昇圧薬" }
+};
+const ALL_DRUG_IDS = Object.keys(DRUGS);
+
+// ============================================================
+// 患者情報(ネタバレなし — 「アナフィラキシー」とは書かない)
+// ============================================================
+const PATIENT = {
+  setup: `<b>45歳 女性</b>、<b>腹腔鏡下胆嚢摘出術</b>。<br>
+          既往歴: 高血圧(コントロール良好)。手術歴・アレルギー歴なし。BMI 23。<br>
+          予定麻酔: <b>全静脈麻酔(TIVA)+ 腹横筋膜面ブロック(TAP block)</b>。<br>
+          麻酔器始業点検: 問題なし。<br>
+          薬剤準備: プロポフォール / レミフェンタニル / フェンタニル / ロクロニウム / スガマデックス / エフェドリン / フェニレフリン / 神経ブロック用局所麻酔薬<br>
+          経過: 患者入室 → モニター装着 → 末梢静脈ルート確保 → タイムアウト(患者確認)完了 → 全身麻酔開始。`,
+  initialVitals: { hr: 78, sbp: 138, dbp: 82, spo2: 96, etco2: "—", rr: 0, plethAmp: 1.0, bis: 98 }
+};
+
+// ============================================================
+// 参考資料(全てゲーム終了画面でのみ表示 → 学習中は診断ネタバレ防止)
+// ============================================================
+const REFERENCES = [
+  { text: "日本アレルギー学会 アナフィラキシーガイドライン 2022", verified: true },
+  { text: "Cardona V, et al. World Allergy Organization Anaphylaxis Guidance 2020. World Allergy Organ J. 2020;13(10):100472.", verified: true },
+  { text: "Harper NJN, et al. Anaesthesia, surgery, and life-threatening allergic reactions: epidemiology and clinical features of perioperative anaphylaxis in the 6th National Audit Project (NAP6). Br J Anaesth. 2018;121:159-171.", verified: true },
+  { text: "Garvey LH, et al. An EAACI position paper on the investigation of perioperative immediate hypersensitivity reactions. Allergy. 2019;74:1872-1884.", verified: true },
+  { text: "Mertes PM, et al. Reducing the risk of anaphylaxis during anaesthesia: 2011 updated guidelines for clinical practice. J Investig Allergol Clin Immunol. 2011;21:442-453.", verified: true },
+  { text: "日本麻酔科学会 周術期アナフィラキシーに関する関連資料 ※学会HPで最新版を必ず確認", verified: false }
+];
+
+// ============================================================
+// シナリオ
+// ============================================================
+const STEPS = [
+
+  // ========== Q1: 最初に投与するもの ==========
+  {
+    id: "Q1", type: "drug-select", scene: "麻酔導入直前",
+    showSetup: true,
+    prompt: "Q1. 最初に投与するものは?",
+    drugIds: ALL_DRUG_IDS,
+    correctIds: ["oxygen"],
+    vitalsByChoice: {
+      oxygen: { hr: 78, sbp: 138, dbp: 82, spo2: 100, etco2: "—", plethAmp: 1.0 }
+    },
+    defaultVitalsAfter: { hr: 78, sbp: 138, dbp: 82, spo2: 96, etco2: "—", plethAmp: 1.0 },
+    feedback: {
+      oxygen: { score: 1, text: "正解。麻酔導入前の<b>前酸素化(pre-oxygenation)</b>で機能的残気量を酸素で置換し、無呼吸時間中の酸素予備能を確保します。100%酸素を3〜5分(または8回深呼吸)が標準。" },
+      _default: { score: 0, text: "不正解。麻酔導入の最初は<b>酸素投与(前酸素化)</b>が必要です。挿管までの無呼吸時間に備えて酸素予備能を作ります。" }
+    }
+  },
+
+  // ========== Q2: 前酸素化完了、SpO2 100% ==========
+  {
+    id: "Q2", type: "drug-select", scene: "前酸素化完了",
+    prompt: "Q2. SpO₂が100%になった。次に投与するものは?",
+    drugIds: ALL_DRUG_IDS,
+    correctIds: ["remi", "propofol"],
+    vitalsByChoice: {
+      remi:     { hr: 75, sbp: 130, dbp: 75, spo2: 100, etco2: "—", plethAmp: 1.0, bis: 95 },
+      propofol: { hr: 65, sbp: 110, dbp: 65, spo2: 100, etco2: "—", plethAmp: 1.0, bis: 75 }
+    },
+    defaultVitalsAfter: { hr: 78, sbp: 138, dbp: 82, spo2: 100, etco2: "—", plethAmp: 1.0 },
+    feedback: {
+      remi:     { score: 1, text: "正解。レミフェンタニル先行で挿管反応抑制を狙う方法は広く行われます。", patientSays: "少しくらくらします" },
+      propofol: { score: 1, text: "正解。プロポフォール先行で意識消失を確認してからオピオイドを足すアプローチも一般的。", patientSays: "(数十秒後…)患者が入眠しました" },
+      _default: { score: 0, text: "不正解。この場面では<b>プロポフォール</b>または<b>レミフェンタニル</b>のいずれかから開始するのが妥当です。" }
+    }
+  },
+
+  // ========== Q3: 分岐ステップ ==========
+  {
+    id: "Q3", type: "drug-select-branched", scene: "TIVA導入中",
+    drugIds: ALL_DRUG_IDS,
+    promptFn: (history) => {
+      const q2 = history.find(h => h.stepId === "Q2");
+      return q2 && q2.selectedId === "remi"
+        ? "Q3. レミフェンタニルで鎮痛深度を確保した。意識はまだある。次に投与するものは?"
+        : "Q3. プロポフォールで入眠した。次に投与するものは?";
+    },
+    correctIdsFn: (history) => {
+      const q2 = history.find(h => h.stepId === "Q2");
+      return q2 && q2.selectedId === "remi" ? ["propofol"] : ["remi"];
+    },
+    vitalsAfterFn: (history, selectedId) => {
+      // 両薬投与で入眠 → マスク換気開始 → EtCO2波形が出始める(RR 12、値 37)
+      const q2 = history.find(h => h.stepId === "Q2");
+      if (q2 && q2.selectedId === "remi" && selectedId === "propofol") return { hr: 65, sbp: 105, dbp: 62, spo2: 100, etco2: 37, rr: 12, plethAmp: 1.0, bis: 55 };
+      if (q2 && q2.selectedId === "propofol" && selectedId === "remi") return { hr: 62, sbp: 100, dbp: 60, spo2: 100, etco2: 37, rr: 12, plethAmp: 1.0, bis: 55 };
+      return { hr: 70, sbp: 110, dbp: 65, spo2: 100, etco2: 37, rr: 12, plethAmp: 1.0, bis: 60 };
+    },
+    feedbackFn: (history, selectedId) => {
+      const q2 = history.find(h => h.stepId === "Q2");
+      const expected = q2 && q2.selectedId === "remi" ? "propofol" : "remi";
+      if (selectedId === expected) {
+        if (expected === "propofol") return { score: 1, text: "正解。レミフェンタニル先行に続き、<b>プロポフォール</b>で入眠を得ます。", patientSays: "(数十秒後…)患者が入眠しました" };
+        return { score: 1, text: "正解。プロポフォール先行で入眠後、<b>レミフェンタニル</b>を加えて鎮痛深度を確保します。" };
+      }
+      return { score: 0, text: `不正解。この場面では<b>${DRUGS[expected].name}</b>を追加するのが妥当です。鎮静と鎮痛の両輪を揃えてから次のステップへ進みます。` };
+    }
+  },
+
+  // ========== Q4: 筋弛緩薬 ==========
+  {
+    id: "Q4", type: "drug-select", scene: "入眠+鎮痛確保、マスク換気良好",
+    prompt: "Q4. 入眠と鎮痛が得られ、マスク換気も良好。気管挿管に進みたい。次に投与するのは?",
+    drugIds: ALL_DRUG_IDS,
+    correctIds: ["roc"],
+    vitalsByChoice: {
+      roc: { hr: 62, sbp: 105, dbp: 62, spo2: 100, etco2: 37, rr: 12, plethAmp: 1.0, bis: 50 }
+    },
+    defaultVitalsAfter: { hr: 65, sbp: 105, dbp: 62, spo2: 100, etco2: 37, rr: 12, plethAmp: 1.0, bis: 50 },
+    feedback: {
+      roc: { score: 1, text: "正解。気管挿管のための筋弛緩薬として<b>ロクロニウム</b>を投与します(通常 0.6〜1.0 mg/kg)。" },
+      sugam: { score: 0, text: "不正解。スガマデックスはロクロニウム/ベクロニウムの<b>拮抗薬</b>。まだ筋弛緩薬を投与していないこの場面では適応外です。" },
+      _default: { score: 0, text: "不正解。気管挿管のために<b>筋弛緩薬(ロクロニウム)</b>が必要な場面です。" }
+    }
+  },
+
+  // ========== ナレーション群: 挿管完了〜セファゾリン〜アラーム ==========
+  {
+    id: "N1", type: "narration", scene: "挿管準備",
+    text: "マスク換気を継続。TOFモニターで <b>T4/T1 = 0</b> を確認した。",
+    vitalsAfter: { hr: 62, sbp: 105, dbp: 62, spo2: 100, etco2: 37, rr: 12, plethAmp: 1.0, bis: 48 },
+    style: "info"
+  },
+  {
+    id: "N2", type: "narration", scene: "気管挿管",
+    text: "喉頭展開、気管挿管を実施。気管チューブが声門を通過し、カフを膨らませた。",
+    vitalsAfter: { hr: 68, sbp: 110, dbp: 65, spo2: 100, etco2: 35, plethAmp: 1.0, rr: 12, bis: 45 },
+    style: "info"
+  },
+  {
+    id: "N3", type: "narration", scene: "挿管確認",
+    text: "両肺野で呼吸音聴取良好、胸郭の挙上を視認。EtCO₂波形は正常パターン。チューブをテープで固定し、<b>FiO₂を40%</b>へ下げた。",
+    vitalsAfter: { hr: 65, sbp: 115, dbp: 70, spo2: 99, etco2: 35, plethAmp: 1.0, rr: 12 },
+    style: "info"
+  },
+  {
+    id: "N4", type: "narration", scene: "TAPブロック準備中",
+    text: "術前抗生剤の指示があり、<b>セファゾリン 1g の投与を開始</b>。TAPブロックの準備を進めていた、その時——",
+    vitalsAfter: { hr: 70, sbp: 118, dbp: 72, spo2: 99, etco2: 35, plethAmp: 1.0, rr: 12 },
+    style: "info"
+  },
+  {
+    id: "ALARM", type: "narration", scene: "⚠️ アラーム発生",
+    text: "<b>バイタルサインモニタからアラームが鳴った。</b><br>血圧が低下している。",
+    vitalsAfter: { hr: 95, sbp: 78, dbp: 45, spo2: 98, etco2: 35, plethAmp: 0.55, rr: 12 },
+    style: "alarm",
+    triggerAlarm: true
+  },
+  {
+    id: "CHAT", type: "chat-mode",
+    text: "対応してください。"
+  }
+];
+
+// ============================================================
+// 状態
+// ============================================================
+const LS_KEY = "anesthesia_sim_log_v1";
+const ALARM_LS_KEY = "anesthesia_sim_alarm";
+
+let state = {
+  currentStepIdx: 0,
+  vitals: { ...PATIENT.initialVitals },
+  history: [],
+  alarmEnabled: false,
+  pendingNarration: null
+};
+
+function getLog() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || { sessions: [] }; }
+  catch { return { sessions: [] }; }
+}
+function saveLog(result) {
+  const log = getLog();
+  log.sessions.push(result);
+  if (log.sessions.length > 20) log.sessions = log.sessions.slice(-20);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(log)); } catch (e) {}
+}
+function clearLog() {
+  if (confirm("学習ログを消去します。よろしいですか?")) {
+    localStorage.removeItem(LS_KEY);
+    renderStart();
+  }
+}
+
+// ============================================================
+// Web Audio: アラーム音
+// ============================================================
+let audioCtx = null;
+function playAlarmSound() {
+  if (!state.alarmEnabled) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    for (let i = 0; i < 4; i++) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = "sine";
+      osc.frequency.value = 880;
+      const t0 = now + i * 0.30;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.15, t0 + 0.02);
+      gain.gain.setValueAtTime(0.15, t0 + 0.18);
+      gain.gain.linearRampToValueAtTime(0, t0 + 0.20);
+      osc.start(t0);
+      osc.stop(t0 + 0.22);
+    }
+  } catch (e) { console.warn("Audio playback failed:", e); }
+}
+
+// ============================================================
+// 心拍音(SpO2連動ピッチ)
+// 実機の variable-pitch oximetry tone を模倣:
+//   SpO2 100% → 880 Hz、SpO2 80% → 440 Hz(20% 低下で1オクターブ下がる)
+//   毎拍トーンを鳴らし、HR の変化に追従する
+// ============================================================
+function mapSpo2ToFreq(spo2) {
+  if (typeof spo2 !== "number") return 880;
+  const clamped = Math.max(60, Math.min(100, spo2));
+  return 880 * Math.pow(2, (clamped - 100) / 20);
+}
+
+let pulseTimeoutId = null;
+
+function playPulseBeep() {
+  if (!state.alarmEnabled) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const spo2 = state.vitals.spo2;
+    const freq = mapSpo2ToFreq(spo2);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const now = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
+    gain.gain.setValueAtTime(0.05, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  } catch (e) { console.warn("Pulse tone error:", e); }
+}
+
+function startPulseLoop() {
+  stopPulseLoop();
+  if (!state.alarmEnabled) return;
+  function tick() {
+    if (!state.alarmEnabled) { pulseTimeoutId = null; return; }
+    const hr = state.vitals.hr;
+    if (typeof hr === "number" && hr > 0) playPulseBeep();
+    const interval = (typeof hr === "number" && hr > 30) ? 60000 / hr : 1000;
+    pulseTimeoutId = setTimeout(tick, interval);
+  }
+  tick();
+}
+
+function stopPulseLoop() {
+  if (pulseTimeoutId) { clearTimeout(pulseTimeoutId); pulseTimeoutId = null; }
+}
+
+// ============================================================
+// 波形描画(プレビューと同じ実装)
+// ============================================================
+function ecgVal(phase) {
+  if (phase < 0.10) return 0;
+  if (phase < 0.16) { const x = (phase - 0.10) / 0.06; return Math.sin(x * Math.PI) * 0.15; }
+  if (phase < 0.22) return 0;
+  if (phase < 0.235) return -((phase - 0.22) / 0.015) * 0.15;
+  if (phase < 0.250) return -0.15 + ((phase - 0.235) / 0.015) * 1.25;
+  if (phase < 0.270) return 1.10 - ((phase - 0.250) / 0.020) * 1.55;
+  if (phase < 0.290) return -0.45 + ((phase - 0.270) / 0.020) * 0.45;
+  if (phase < 0.42) return 0;
+  if (phase < 0.58) { const x = (phase - 0.42) / 0.16; return Math.sin(x * Math.PI) * 0.28; }
+  return 0;
+}
+function plethVal(phase, amp) {
+  if (phase < 0.18) return Math.sin((phase / 0.18) * Math.PI / 2) * amp;
+  if (phase < 0.32) { const x = (phase - 0.18) / 0.14; return amp * (1.0 - x * 0.40); }
+  if (phase < 0.40) { const x = (phase - 0.32) / 0.08; return amp * (0.60 - x * 0.18); }
+  if (phase < 0.85) { const x = (phase - 0.40) / 0.45; return amp * 0.42 * (1.0 - x); }
+  return 0;
+}
+function capnoVal(phase, et) {
+  if (typeof et !== "number") return 0;
+  const norm = et / 50;
+  if (phase < 0.30) return 0;
+  if (phase < 0.33) return ((phase - 0.30) / 0.03) * norm;
+  if (phase < 0.92) return norm + ((phase - 0.33) / 0.59) * 0.04 * norm;
+  if (phase < 0.95) return norm * 1.04 * (1.0 - (phase - 0.92) / 0.03);
+  return 0;
+}
+
+// EEG (BIS連動): BIS 値で周波数帯と振幅が変わる
+const burstState = { active: false, startTime: 0, nextBurstAt: 0 };
+function eegVal(t, bis) {
+  if (typeof bis !== "number") return 0;
+  if (bis < 25) {
+    if (!burstState.active && t >= burstState.nextBurstAt) {
+      burstState.active = true;
+      burstState.startTime = t;
+    }
+    if (burstState.active) {
+      const e = t - burstState.startTime;
+      if (e > 0.6) {
+        burstState.active = false;
+        burstState.nextBurstAt = t + 2 + Math.random() * 2;
+        return 0;
+      }
+      const env = Math.sin(e / 0.6 * Math.PI);
+      return (Math.sin(t * 2 * Math.PI * 12) * 0.5 +
+              Math.sin(t * 2 * Math.PI * 20 + 1.3) * 0.3 +
+              Math.sin(t * 2 * Math.PI * 8 + 2.1) * 0.4) * env * 0.85;
+    }
+    return (Math.random() - 0.5) * 0.04;
+  }
+  let domFreq;
+  if (bis < 40) domFreq = 0.8 + (bis / 40) * 2.5;
+  else if (bis < 60) domFreq = 3.3 + ((bis - 40) / 20) * 3.5;
+  else if (bis < 80) domFreq = 6.8 + ((bis - 60) / 20) * 5;
+  else domFreq = 11.8 + ((bis - 80) / 20) * 13;
+  let amp;
+  if (bis < 50) amp = 0.65 - (50 - bis) * 0.008;
+  else if (bis < 75) amp = 0.55 - (bis - 50) * 0.010;
+  else amp = 0.30 - (bis - 75) * 0.005;
+  amp = Math.max(0.10, amp);
+  let v = 0;
+  v += Math.sin(t * 2 * Math.PI * domFreq) * amp;
+  v += Math.sin(t * 2 * Math.PI * domFreq * 1.7 + 1.3) * amp * 0.4;
+  v += Math.sin(t * 2 * Math.PI * domFreq * 0.6 + 2.1) * amp * 0.35;
+  v += Math.sin(t * 2 * Math.PI * 35 + t * 7) * (bis / 100) * 0.05;
+  return v;
+}
+
+const SPEED_FAST = 80;
+const SPEED_SLOW = 32;
+
+const waves = { ecg: null, pleth: null, capno: null, eeg: null };
+
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+  const dpr = window.devicePixelRatio || 1;
+  let rect = canvas.getBoundingClientRect();
+  // Fallback: parent幅 or 固定値
+  let w = rect.width;
+  let h = rect.height;
+  if (w === 0) {
+    const parent = canvas.parentElement;
+    w = parent ? parent.getBoundingClientRect().width : 400;
+    if (w === 0) w = 400;
+  }
+  if (h === 0) h = 58;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  return {
+    canvas, ctx, w, h,
+    x: 0, lastY: h / 2,
+    timeAcc: 0, lastTime: performance.now(),
+    justWrapped: true
+  };
+}
+
+function drawWave(s, color, valueFn, period, speed) {
+  if (!s) return;
+  const now = performance.now();
+  let dt = (now - s.lastTime) / 1000;
+  s.lastTime = now;
+  if (dt > 0.5) { s.timeAcc += dt; return; }
+  s.timeAcc += dt;
+  const advance = speed * dt;
+  const newX = s.x + advance;
+  const phase = (s.timeAcc % period) / period;
+  const value = valueFn(phase);
+  const newY = s.h / 2 - value * (s.h * 0.38);
+  s.ctx.clearRect(newX, 0, 24, s.h);
+  if (!s.justWrapped) {
+    s.ctx.strokeStyle = color;
+    s.ctx.lineWidth = 1.6;
+    s.ctx.lineCap = "round";
+    s.ctx.lineJoin = "round";
+    s.ctx.beginPath();
+    s.ctx.moveTo(s.x, s.lastY);
+    s.ctx.lineTo(newX, newY);
+    s.ctx.stroke();
+  }
+  s.lastY = newY; s.x = newX; s.justWrapped = false;
+  if (s.x >= s.w) { s.x = 0; s.justWrapped = true; s.ctx.clearRect(0, 0, 24, s.h); }
+}
+
+let animationFrameId = null;
+function waveLoop() {
+  if (waves.ecg && state.vitals.hr > 0) {
+    const p = 60 / state.vitals.hr;
+    drawWave(waves.ecg, "#00ff66", ecgVal, p, SPEED_FAST);
+    drawWave(waves.pleth, "#00d4ff", (ph) => plethVal(ph, state.vitals.plethAmp || 0), p, SPEED_FAST);
+  }
+  if (waves.capno && state.vitals.rr > 0 && typeof state.vitals.etco2 === "number") {
+    const p = 60 / state.vitals.rr;
+    drawWave(waves.capno, "#ffffff", (ph) => capnoVal(ph, state.vitals.etco2), p, SPEED_SLOW);
+  }
+  if (waves.eeg && typeof state.vitals.bis === "number") {
+    drawEEG(waves.eeg, state.vitals.bis);
+  }
+  animationFrameId = requestAnimationFrame(waveLoop);
+}
+
+function drawEEG(s, bis) {
+  if (!s) return;
+  const now = performance.now();
+  let dt = (now - s.lastTime) / 1000;
+  s.lastTime = now;
+  if (dt > 0.5) { s.timeAcc += dt; return; }
+  s.timeAcc += dt;
+  const advance = SPEED_FAST * dt;
+  const newX = s.x + advance;
+  const value = eegVal(s.timeAcc, bis);
+  const newY = s.h / 2 - value * (s.h * 0.25);
+  s.ctx.clearRect(newX, 0, 24, s.h);
+  if (!s.justWrapped) {
+    s.ctx.strokeStyle = "#ff9933";
+    s.ctx.lineWidth = 1.4;
+    s.ctx.lineCap = "round";
+    s.ctx.lineJoin = "round";
+    s.ctx.beginPath();
+    s.ctx.moveTo(s.x, s.lastY);
+    s.ctx.lineTo(newX, newY);
+    s.ctx.stroke();
+  }
+  s.lastY = newY; s.x = newX; s.justWrapped = false;
+  if (s.x >= s.w) { s.x = 0; s.justWrapped = true; s.ctx.clearRect(0, 0, 24, s.h); }
+}
+
+// ============================================================
+// レンダリング
+// ============================================================
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+
+function renderMonitor() {
+  const v = state.vitals;
+  const sbpLow = (typeof v.sbp === "number" && v.sbp < 80);
+  const spo2Low = (typeof v.spo2 === "number" && v.spo2 < 92);
+  const hrLow = (typeof v.hr === "number" && (v.hr > 130 || v.hr < 50));
+  const map = (typeof v.sbp === "number" && typeof v.dbp === "number") ? Math.round((v.sbp + 2 * v.dbp) / 3) : "—";
+  return `
+    <div class="monitor" id="monitor">
+      <div class="label-cell">
+        <span class="name hr">HR</span><span class="unit">(bpm)</span>
+        <span class="value hr ${hrLow ? 'low' : ''}">${v.hr}</span>
+      </div>
+      <div class="wave-cell"><canvas id="ecg"></canvas></div>
+
+      <div class="label-cell">
+        <span class="name nibp">NIBP</span><span class="unit">SYS/DIA (MEAN)</span>
+        <span class="value nibp ${sbpLow ? 'low' : ''}">${v.sbp}/${v.dbp}</span>
+        <span class="sub nibp">(${map})</span>
+      </div>
+      <div class="wave-cell empty"></div>
+
+      <div class="label-cell">
+        <span class="name spo2">SpO₂</span><span class="unit">(%)</span>
+        <span class="value spo2 ${spo2Low ? 'low' : ''}">${v.spo2}</span>
+      </div>
+      <div class="wave-cell"><canvas id="pleth"></canvas></div>
+
+      <div class="label-cell">
+        <span class="name etco2">EtCO₂</span><span class="unit">(mmHg)</span>
+        <span class="value etco2">${v.etco2}</span>
+      </div>
+      <div class="wave-cell"><canvas id="capno"></canvas></div>
+
+      <div class="label-cell">
+        <span class="name bis">BIS</span><span class="unit">(0-100)</span>
+        <span class="value bis">${typeof v.bis === "number" ? v.bis : (v.bis || "—")}</span>
+      </div>
+      <div class="wave-cell"><canvas id="eeg"></canvas></div>
+
+      <div class="monitor-foot">
+        <span>${state.alarmEnabled ? '🔊 モニター音 ON' : '🔇 モニター音 OFF'}</span>
+        <button class="mute-btn" onclick="toggleAlarmMid()">${state.alarmEnabled ? 'ミュート' : '音を有効化'}</button>
+      </div>
+    </div>
+  `;
+}
+
+function reinitCanvases() {
+  waves.ecg = setupCanvas("ecg");
+  waves.pleth = setupCanvas("pleth");
+  waves.capno = setupCanvas("capno");
+  waves.eeg = setupCanvas("eeg");
+}
+
+function toggleAlarmMid() {
+  state.alarmEnabled = !state.alarmEnabled;
+  try { localStorage.setItem(ALARM_LS_KEY, state.alarmEnabled ? "1" : "0"); } catch (e) {}
+  const monitorEl = document.querySelector(".monitor-foot");
+  if (monitorEl) {
+    monitorEl.querySelector("span").textContent = state.alarmEnabled ? '🔊 モニター音 ON' : '🔇 モニター音 OFF';
+    monitorEl.querySelector("button").textContent = state.alarmEnabled ? 'ミュート' : '音を有効化';
+  }
+  if (state.alarmEnabled) startPulseLoop(); else stopPulseLoop();
+}
+
+function renderProgress() {
+  return `<div class="progress">${STEPS.map((s, i) => {
+    let cls = "";
+    if (s.type === "narration") cls = "narration";
+    if (i < state.currentStepIdx) {
+      const h = state.history.find(x => x.stepId === s.id);
+      if (h) cls = h.score === 1 ? "done" : (h.score >= 0.5 ? "partial" : "wrong");
+      else if (s.type === "narration") cls = "narration";
+    } else if (i === state.currentStepIdx) cls = "current";
+    return `<div class="progress-dot ${cls}"></div>`;
+  }).join("")}</div>`;
+}
+
+function renderApp(innerHtml) {
+  document.getElementById("app").innerHTML = renderMonitor() + renderProgress() + innerHtml;
+  // 次フレームでcanvas初期化 → layout完了を保証
+  requestAnimationFrame(() => { reinitCanvases(); });
+}
+
+// ============================================================
+// スタート画面
+// ============================================================
+function renderStart() {
+  if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+  stopPulseLoop();
+  state.alarmEnabled = (localStorage.getItem(ALARM_LS_KEY) === "1");
+  state.vitals = { hr: 0, sbp: "—", dbp: "—", spo2: "—", etco2: "—", rr: 0, plethAmp: 0, bis: "—" };
+
+  const log = getLog();
+  let logCard = "";
+  if (log.sessions.length > 0) {
+    const recent = log.sessions.slice(-3);
+    const avg = recent.reduce((s, x) => s + x.score / x.maxScore, 0) / recent.length;
+    logCard = `
+      <div class="card">
+        <div style="font-weight:700; margin-bottom:10px;">📊 学習ログ</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div style="padding:12px; background:#f0f4f8; border-radius:8px; text-align:center;">
+            <div style="font-size:12px; color:#6c757d;">プレイ回数</div>
+            <div style="font-size:22px; font-weight:700;">${log.sessions.length}</div>
+          </div>
+          <div style="padding:12px; background:#f0f4f8; border-radius:8px; text-align:center;">
+            <div style="font-size:12px; color:#6c757d;">直近3回の正答率</div>
+            <div style="font-size:22px; font-weight:700;">${Math.round(avg * 100)}%</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById("app").innerHTML = `
+    <div class="hero">
+      <h1>麻酔管理シミュレーション</h1>
+      <div class="subtitle">麻酔導入〜術中合併症への対応を学ぶ</div>
+    </div>
+
+    <div class="card">
+      <div class="disclaimer">
+        <b>⚠️ 注意</b><br>
+        本ゲームは教育目的のシミュレーションであり、実臨床判断の根拠としないこと。<br>
+        参考文献はゲーム終了画面に表示します。使用前に必ず最新版をご確認ください。
+      </div>
+
+      <div class="case-setup">${PATIENT.setup}</div>
+
+      <div class="toggle-row">
+        <div>
+          <div style="font-weight:600;">🔊 モニター音</div>
+          <div style="font-size:12px; color:#6c757d; margin-top:2px;">心拍音(SpO₂連動ピッチ)+ 急変時アラーム音(会場で使う場合はOFF推奨)</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="alarmToggle" ${state.alarmEnabled ? "checked" : ""} onchange="toggleAlarm()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div style="font-size:13px; color:#6c757d; margin-bottom:12px;">
+        全 ${STEPS.length} ステップ。途中で中断はできません。
+      </div>
+      <button class="btn" onclick="startSession()">セッションを開始</button>
+      ${log.sessions.length > 0 ? `<button class="btn ghost" onclick="clearLog()">学習ログを消去</button>` : ""}
+    </div>
+    ${logCard}
+
+    <div style="text-align:center; font-size:11px; color:rgba(255,255,255,0.5); margin-top:16px;">
+      Anesthesia Management Simulation v1.0 — for educational use only
+    </div>
+  `;
+}
+
+function toggleAlarm() {
+  state.alarmEnabled = document.getElementById("alarmToggle").checked;
+  try { localStorage.setItem(ALARM_LS_KEY, state.alarmEnabled ? "1" : "0"); } catch (e) {}
+  if (state.alarmEnabled) {
+    // Audio APIはユーザー操作で初期化する必要があるため、ここでresume
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  }
+}
+
+// ============================================================
+// セッション開始
+// ============================================================
+function startSession() {
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  state.currentStepIdx = 0;
+  state.vitals = { ...PATIENT.initialVitals };
+  state.history = [];
+  state.pendingNarration = null;
+  state.retryCount = null;
+  renderStep();
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  animationFrameId = requestAnimationFrame(waveLoop);
+  startPulseLoop();
+}
+
+// ============================================================
+// ステップ描画
+// ============================================================
+function currentStep() { return STEPS[state.currentStepIdx]; }
+
+function renderStep() {
+  const step = currentStep();
+
+  if (step.vitalsAfter) state.vitals = { ...state.vitals, ...step.vitalsAfter };
+
+  let promptText = step.prompt;
+  if (step.promptFn) promptText = step.promptFn(state.history);
+
+  let bodyHtml = "";
+
+  if (step.type === "drug-select" || step.type === "drug-select-branched") {
+    bodyHtml = `
+      <div class="step-meta">
+        <span class="step-id">${step.id}</span>
+        <span class="step-scene">${escapeHtml(step.scene)}</span>
+      </div>
+      ${step.showSetup ? `<div class="case-setup">${PATIENT.setup}</div>` : ""}
+      <div class="step-prompt">${promptText}</div>
+      <div class="drug-grid">
+        ${step.drugIds.map(id => `
+          <button class="drug-btn" onclick="onDrug('${id}')">
+            ${escapeHtml(DRUGS[id].name)}
+            <span class="drug-cat">${escapeHtml(DRUGS[id].cat)}</span>
+          </button>
+        `).join("")}
+      </div>
+    `;
+  } else if (step.type === "choice") {
+    bodyHtml = `
+      <div class="step-meta">
+        <span class="step-id">${step.id}</span>
+        <span class="step-scene">${escapeHtml(step.scene)}</span>
+      </div>
+      <div class="step-prompt">${promptText}</div>
+      <div class="choices">
+        ${step.choices.map((ch, i) => `
+          <button class="choice ${ch.isWatchWait ? 'watch-wait' : ''}" onclick="onChoice(${i})">${escapeHtml(ch.text)}</button>
+        `).join("")}
+      </div>
+    `;
+  } else if (step.type === "diagnosis-declaration") {
+    bodyHtml = `
+      <div class="diagnosis-banner">
+        <h2>${step.bannerText}</h2>
+        <p>${step.bannerSubtext}</p>
+      </div>
+      <div class="step-meta">
+        <span class="step-id">${step.id}</span>
+        <span class="step-scene">${escapeHtml(step.scene)}</span>
+      </div>
+      <div class="step-prompt">${promptText}</div>
+      <div class="choices">
+        ${step.choices.map((ch, i) => `
+          <button class="choice" onclick="onChoice(${i})">${escapeHtml(ch.text)}</button>
+        `).join("")}
+      </div>
+    `;
+  } else if (step.type === "narration") {
+    const cls = step.style || "info";
+    bodyHtml = `
+      <div class="step-meta">
+        <span class="step-id ${step.style === 'alarm' ? 'alarm' : 'narration'}">${step.id}</span>
+        <span class="step-scene">${escapeHtml(step.scene)}</span>
+      </div>
+      <div class="narration ${cls}">${step.text}</div>
+      <button class="btn" onclick="onNarrationNext()">次へ</button>
+    `;
+    if (step.triggerAlarm) {
+      setTimeout(() => {
+        playAlarmSound();
+        const m = document.getElementById("monitor");
+        if (m) {
+          m.classList.add("alarm-active");
+          setTimeout(() => m.classList.remove("alarm-active"), 2400);
+        }
+      }, 100);
+    }
+  } else if (step.type === "chat-mode") {
+    // 急変対応(チャット)への橋渡し
+    bodyHtml = `
+      <div class="step-meta">
+        <span class="step-id" style="background:#c0392b;">急変対応</span>
+        <span class="step-scene">アラーム発生後の対応</span>
+      </div>
+      <div class="narration alarm" style="font-size:16px; line-height:1.8;">
+        <b>⚠️ 急変対応フェーズへ</b><br><br>
+        ここからは <b>AIチャット式</b>で対応してください。<br>
+        テキスト・音声で自由に「次に何をするか」を伝え、診断 → 治療 → ICU 搬送まで進めます。
+      </div>
+      <button class="btn" style="background:#c0392b; font-size:18px; padding:16px;"
+              onclick="goToChatPhase()">
+        🩺 急変対応(チャット)へ進む →
+      </button>
+      <div style="font-size:12px; color:#6c757d; margin-top:12px; text-align:center;">
+        ※ 別画面に遷移します。Anthropic API キーがあれば Claude が指導医として応答。なくてもルールベースで動作。
+      </div>
+    `;
+  }
+
+  renderApp(`<div class="card">${bodyHtml}</div>`);
+}
+
+// ============================================================
+// 選択ハンドラ
+// ============================================================
+function onDrug(drugId) {
+  const step = currentStep();
+  let correctIds, vitalsAfter, fb;
+  if (step.type === "drug-select-branched") {
+    correctIds = step.correctIdsFn(state.history);
+    vitalsAfter = step.vitalsAfterFn(state.history, drugId);
+    fb = step.feedbackFn(state.history, drugId);
+  } else {
+    correctIds = step.correctIds;
+    vitalsAfter = (step.vitalsByChoice && step.vitalsByChoice[drugId]) || step.defaultVitalsAfter;
+    fb = step.feedback[drugId] || step.feedback._default;
+  }
+  if (vitalsAfter) state.vitals = { ...state.vitals, ...vitalsAfter };
+  state.history.push({ stepId: step.id, selectedId: drugId, score: fb.score });
+  showFeedback(fb);
+}
+
+function onChoice(idx) {
+  const step = currentStep();
+  const ch = step.choices[idx];
+
+  // ステップ毎の retryカウンタ
+  if (!state.retryCount || state.retryCount.stepId !== step.id) {
+    state.retryCount = { stepId: step.id, count: 0 };
+  }
+
+  // retry: true の選択肢 → 中間結果を見せて再考させる
+  if (ch.retry) {
+    state.retryCount.count++;
+    if (state.retryCount.count >= 2) {
+      // 2回連続誤答 → 正解への誘導
+      const correctCh = step.choices.find(c => c.score === 1);
+      if (correctCh) {
+        if (correctCh.vitalsAfter) state.vitals = { ...state.vitals, ...correctCh.vitalsAfter };
+        state.history.push({ stepId: step.id, selectedIdx: idx, score: 0, forced: true });
+        if (correctCh.nextNarration) state.pendingNarration = correctCh.nextNarration;
+        state.retryCount = null;
+        showFeedback({
+          score: 0, forced: true,
+          text: `<b>正解は「${escapeHtml(correctCh.text)}」</b>でした。<br><br>${correctCh.feedback}`
+        });
+        return;
+      }
+    }
+    // 1回目誤答 → 中間vitalsを反映、同じ問題に戻る
+    if (ch.vitalsAfter) state.vitals = { ...state.vitals, ...ch.vitalsAfter };
+    showFeedback({ isRetry: true, text: ch.feedback });
+    return;
+  }
+
+  // 通常選択肢
+  if (ch.vitalsAfter) state.vitals = { ...state.vitals, ...ch.vitalsAfter };
+  let score = ch.score;
+  // retry後に正解した場合は部分点(0.5)
+  if (ch.score === 1 && state.retryCount && state.retryCount.stepId === step.id && state.retryCount.count > 0) {
+    score = 0.5;
+  }
+  state.history.push({ stepId: step.id, selectedIdx: idx, score });
+  state.retryCount = null;
+  if (ch.nextNarration) state.pendingNarration = ch.nextNarration;
+  showFeedback({ score, text: ch.feedback, patientSays: ch.patientSays });
+}
+
+function showFeedback(fb) {
+  let titleClass, titleText, btnLabel, btnAction;
+  if (fb.isRetry) {
+    titleClass = "partial";
+    titleText = "🤔 続けて対応を";
+    btnLabel = "もう一度考える";
+    btnAction = "retryStep()";
+  } else if (fb.forced) {
+    titleClass = "wrong";
+    titleText = "📖 正解への誘導";
+    btnLabel = "次へ";
+    btnAction = "nextStep()";
+  } else {
+    const isCorrect = fb.score === 1;
+    const isPartial = fb.score === 0.5;
+    titleClass = isCorrect ? "correct" : (isPartial ? "partial" : "wrong");
+    titleText = isCorrect ? "✓ 正解" : (isPartial ? "△ 部分正解" : "✗ 不正解");
+    btnLabel = "次へ";
+    btnAction = "nextStep()";
+  }
+  const modal = `
+    <div class="modal-bg" id="modalBg">
+      <div class="modal">
+        <div class="modal-title ${titleClass}">${titleText}</div>
+        ${fb.patientSays ? `<div class="patient-says">${escapeHtml(fb.patientSays)}</div>` : ""}
+        <div class="feedback-text">${fb.text}</div>
+        <button class="btn" onclick="${btnAction}">${btnLabel}</button>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", modal);
+}
+
+function closeModal() {
+  const m = document.getElementById("modalBg");
+  if (m) m.remove();
+}
+
+function retryStep() {
+  closeModal();
+  // 同じステップを再描画(リトライ)
+  renderStep();
+}
+
+function goToChatPhase() {
+  // 心拍音やタイマーを止めてからチャットファイルへ遷移
+  if (state.timerInterval) clearInterval(state.timerInterval);
+  if (typeof stopPulseLoop === "function") stopPulseLoop();
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  window.location.href = "chat.html";
+}
+
+function onNarrationNext() {
+  state.currentStepIdx++;
+  if (state.currentStepIdx >= STEPS.length) renderSummary();
+  else renderStep();
+}
+
+function nextStep() {
+  closeModal();
+  // pendingNarrationがあれば、それを差し込む
+  if (state.pendingNarration) {
+    const n = state.pendingNarration;
+    state.pendingNarration = null;
+    renderInlineNarration(n);
+    return;
+  }
+  state.currentStepIdx++;
+  if (state.currentStepIdx >= STEPS.length) renderSummary();
+  else renderStep();
+}
+
+function renderInlineNarration(n) {
+  const cls = n.style || "info";
+  renderApp(`
+    <div class="card">
+      <div class="step-meta">
+        <span class="step-id narration">情報更新</span>
+      </div>
+      <div class="narration ${cls}">${n.text}</div>
+      <button class="btn" onclick="continueAfterNarration()">次へ</button>
+    </div>
+  `);
+}
+
+function continueAfterNarration() {
+  state.currentStepIdx++;
+  if (state.currentStepIdx >= STEPS.length) renderSummary();
+  else renderStep();
+}
+
+// ============================================================
+// セッション終了画面
+// ============================================================
+function renderSummary() {
+  const scoredHistory = state.history.filter(h => typeof h.score === "number");
+  const totalScore = scoredHistory.reduce((s, h) => s + h.score, 0);
+  const maxScore = STEPS.filter(s => s.type !== "narration").length;
+  const rate = totalScore / maxScore;
+
+  saveLog({ timestamp: Date.now(), score: totalScore, maxScore, history: state.history });
+
+  const reviewList = state.history.filter(h => typeof h.score === "number").map(h => {
+    const step = STEPS.find(s => s.id === h.stepId);
+    const icon = h.score === 1 ? "✓" : (h.score >= 0.5 ? "△" : "✗");
+    const color = h.score === 1 ? "#27ae60" : (h.score >= 0.5 ? "#d68910" : "#c0392b");
+    return `<div style="padding:8px 0; border-bottom:1px solid #eee; font-size:14px;">
+      <span style="color:${color}; font-weight:700;">${icon}</span>
+      <b>${escapeHtml(step.id)}</b>: ${escapeHtml(step.scene)}
+    </div>`;
+  }).join("");
+
+  const refsHtml = REFERENCES.map(r => `
+    <div class="ref-item">
+      <span class="badge ${r.verified ? "verified" : "check"}">${r.verified ? "確認済" : "要再確認"}</span>${escapeHtml(r.text)}
+    </div>
+  `).join("");
+
+  document.getElementById("app").innerHTML = renderMonitor() + `
+    <div class="card">
+      <div style="text-align:center; padding:14px 0;">
+        <div style="font-size:14px; color:#6c757d; margin-bottom:6px;">最終診断</div>
+        <div style="font-size:20px; font-weight:700; color:#c0392b;">セファゾリンによる周術期アナフィラキシー</div>
+      </div>
+      <div style="text-align:center; padding:14px 0;">
+        <div style="font-size:48px; font-weight:800; color:#4a90e2;">${totalScore.toFixed(1)} / ${maxScore}</div>
+        <div style="color:#6c757d;">正答率 ${Math.round(rate * 100)}%</div>
+      </div>
+      <div style="background:#f8f9fa; padding:12px 16px; border-radius:8px; margin-bottom:14px;">
+        ${reviewList}
+      </div>
+      <button class="btn secondary" onclick="renderStart()">トップへ戻る</button>
+    </div>
+
+    <div class="card">
+      <div class="refs">
+        <div class="refs-title">📚 参考資料</div>
+        ${refsHtml}
+        <div style="font-size:11px; color:#999; margin-top:10px; line-height:1.6;">
+          ※「要再確認」は本ゲーム作成時点で実在・最新版が完全に裏付けられなかった文献です。<br>
+          ※ 発表/教育使用前に、必ず麻酔科専門医ご自身で全文献の最新版・正確性をご確認ください。
+        </div>
+      </div>
+    </div>
+  `;
+  reinitCanvases();
+}
+
+// ============================================================
+// 初期化
+// ============================================================
+window.addEventListener("load", () => {
+  state.alarmEnabled = (localStorage.getItem(ALARM_LS_KEY) === "1");
+  renderStart();
+});
+</script>
+</body>
+</html>

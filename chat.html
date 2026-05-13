@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>急変対応 — 麻酔管理シミュレーション</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #2c3e50;
+    color: #f0f4f8;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .app { max-width: 760px; margin: 0 auto; padding: 12px; padding-bottom: 12px; }
+
+  /* === Monitor === */
+  .monitor {
+    background: #000;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 3px 10px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    position: sticky;
+    top: 8px;
+    z-index: 10;
+  }
+  .label-cell {
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 2px 0;
+  }
+  .label-cell .name { font-size: 10px; opacity: 0.7; letter-spacing: 0.5px; font-weight: 600; }
+  .label-cell .unit { font-size: 9px; opacity: 0.5; margin-top: 1px; }
+  .label-cell .value {
+    font-size: 26px; font-weight: 700;
+    font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
+    line-height: 1; margin-top: 3px;
+    transition: color 0.3s;
+  }
+  .label-cell .sub { font-size: 12px; opacity: 0.85; line-height: 1; margin-top: 2px; }
+  .value.low { color: #ff4d4d; animation: pulseLow 1s infinite; }
+  .value.warn { color: #ffd93d; }
+  .wave-cell {
+    height: 48px;
+    background: #000;
+    overflow: hidden;
+  }
+  .wave-cell.empty { background: #000; }
+  .wave-cell canvas { display: block; width: 100%; height: 100%; }
+  @keyframes pulseLow { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .v-hr   { color: #00ff66; }
+  .v-bp   { color: #ff7ab8; }
+  .v-spo2 { color: #00d4ff; }
+  .v-co2  { color: #ffffff; }
+  .v-bis  { color: #ff9933; }
+
+  /* === Chat === */
+  .chat-container {
+    background: #1a2332;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    min-height: 420px;
+    display: flex; flex-direction: column;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 50vh;
+    padding-right: 4px;
+  }
+  .message {
+    display: flex; gap: 8px;
+    margin-bottom: 12px;
+    animation: msgIn 0.25s;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .message.student { flex-direction: row-reverse; }
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #2c3e50;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .message.student .avatar { background: #4a90e2; }
+  .bubble {
+    max-width: 80%;
+    background: #2c3e50;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #e0e6ef;
+  }
+  .message.student .bubble {
+    background: #4a90e2;
+    color: white;
+  }
+  .message.system .bubble {
+    background: #fff3cd;
+    color: #856404;
+    font-size: 13px;
+    font-style: italic;
+  }
+  .message.correct .bubble {
+    background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%);
+    color: white;
+    font-weight: 600;
+  }
+  .bubble b { color: #ffd93d; }
+  .message.student .bubble b { color: #ffd93d; }
+  .typing { opacity: 0.7; font-style: italic; }
+
+  /* === Input (画面下に固定) === */
+  .input-area {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1a2332;
+    padding: 10px 12px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+    z-index: 50;
+  }
+  .input-area > .hint-row,
+  .input-area > .hint-panel,
+  .input-area > .input-row {
+    max-width: 736px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .app { padding-bottom: 180px; }
+
+  /* === 完了バナー === */
+  .completion-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%);
+    color: white;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    animation: bannerSlide 0.5s;
+  }
+  @keyframes bannerSlide {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+  }
+  .completion-banner .icon { font-size: 30px; }
+  .completion-banner .text { flex: 1; }
+  .completion-banner .t1 { font-size: 17px; font-weight: 700; }
+  .completion-banner .t2 { font-size: 12px; opacity: 0.92; margin-top: 2px; }
+  .completion-banner .restart-btn {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .completion-banner .restart-btn:hover { background: rgba(255,255,255,0.3); }
+  .text-input:disabled, .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .hint-row {
+    display: flex; gap: 6px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .hint-btn {
+    background: rgba(245,166,35,0.15);
+    border: 1px solid rgba(245,166,35,0.4);
+    color: #ffd93d;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .hint-btn:hover { background: rgba(245,166,35,0.25); }
+  .finish-btn {
+    background: rgba(39,174,96,0.15);
+    border: 1px solid rgba(39,174,96,0.5);
+    color: #6bd99e;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    margin-left: auto;
+  }
+  .finish-btn:hover { background: rgba(39,174,96,0.28); }
+  .finish-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .hint-panel {
+    background: #2c3e50;
+    border-left: 3px solid #f5a623;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #e0e6ef;
+    display: none;
+  }
+  .hint-panel.show { display: block; animation: fadeIn 0.2s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .input-row {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+  }
+  .text-input {
+    flex: 1;
+    background: #2c3e50;
+    border: 1px solid #455a75;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #f0f4f8;
+    font-family: inherit;
+    font-size: 14px;
+    resize: none;
+    min-height: 44px;
+    max-height: 100px;
+  }
+  .text-input:focus { outline: none; border-color: #4a90e2; }
+  .icon-btn {
+    background: #2c3e50;
+    border: 1px solid #455a75;
+    border-radius: 8px;
+    color: #f0f4f8;
+    width: 44px; height: 44px;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { background: #34495e; }
+  .icon-btn.listening { background: #e74c3c; border-color: #e74c3c; animation: pulseBtn 0.8s infinite; }
+  @keyframes pulseBtn { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.6); } 50% { box-shadow: 0 0 0 8px rgba(231,76,60,0); } }
+  .send-btn {
+    background: #4a90e2;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    padding: 0 18px;
+    height: 44px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: #3a7bc8; }
+  .send-btn:disabled { background: #6c757d; cursor: not-allowed; }
+
+  /* === API key setup === */
+  .api-setup {
+    background: #1a2332;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .api-setup-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #aebcd0;
+  }
+  .api-setup-desc {
+    font-size: 12px;
+    color: #aebcd0;
+    margin-bottom: 8px;
+    line-height: 1.6;
+  }
+  .api-key-row {
+    display: flex; gap: 6px;
+  }
+  .api-key-input {
+    flex: 1;
+    background: #2c3e50;
+    border: 1px solid #455a75;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #f0f4f8;
+    font-family: monospace;
+    font-size: 12px;
+  }
+  .api-status {
+    font-size: 11px;
+    margin-top: 6px;
+    color: #aebcd0;
+  }
+  .api-status.ok { color: #27ae60; }
+  .api-status.fail { color: #e74c3c; }
+  .sound-toggle-btn {
+    margin-top: 10px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #f0f4f8;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .sound-toggle-btn:hover { background: rgba(255,255,255,0.15); }
+  .sound-toggle-btn.active { background: rgba(74,144,226,0.25); border-color: #4a90e2; color: #fff; }
+
+  /* === Alarm === */
+  .alarm-light {
+    width: 8px; height: 8px;
+    background: #e74c3c;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+    animation: blinkLight 1s infinite;
+  }
+  @keyframes blinkLight {
+    0%,49% { opacity: 1; }
+    50%,100% { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="monitor">
+    <div class="label-cell">
+      <span class="name v-hr">HR</span><span class="unit">(bpm)</span>
+      <span class="value v-hr" id="v-hr">95</span>
+    </div>
+    <div class="wave-cell"><canvas id="ecg"></canvas></div>
+
+    <div class="label-cell">
+      <span class="name v-bp">NIBP</span><span class="unit">SYS/DIA</span>
+      <span class="value v-bp warn" id="v-bp">78/45</span>
+      <span class="sub v-bp" id="v-map">(56)</span>
+    </div>
+    <div class="wave-cell empty"></div>
+
+    <div class="label-cell">
+      <span class="name v-spo2">SpO₂</span><span class="unit">(%)</span>
+      <span class="value v-spo2" id="v-spo2">98</span>
+    </div>
+    <div class="wave-cell"><canvas id="pleth"></canvas></div>
+
+    <div class="label-cell">
+      <span class="name v-co2">EtCO₂</span><span class="unit">(mmHg)</span>
+      <span class="value v-co2" id="v-co2">35</span>
+    </div>
+    <div class="wave-cell"><canvas id="capno"></canvas></div>
+
+    <div class="label-cell">
+      <span class="name v-bis">BIS</span><span class="unit">(0-100)</span>
+      <span class="value v-bis" id="v-bis">45</span>
+    </div>
+    <div class="wave-cell"><canvas id="eeg"></canvas></div>
+  </div>
+
+  <div class="api-setup">
+    <div class="api-setup-title">
+      <span class="alarm-light"></span>Anthropic API Key(任意・LLM応答を有効化)
+    </div>
+    <div class="api-setup-desc">
+      指導医AIとして Claude が文脈を理解して応答します。
+      キーなしでも内蔵のキーワードマッチで動作します。
+      キーは <b>このブラウザにのみ保存</b>(localStorage)、外部送信なし。
+    </div>
+    <div class="api-key-row">
+      <input class="api-key-input" id="apiKey" type="password" placeholder="sk-ant-..." value="">
+      <button class="send-btn" style="padding:0 14px; height:36px;" onclick="saveApiKey()">保存</button>
+    </div>
+    <div class="api-status" id="apiStatus">未設定 → ルールベースで動作</div>
+    <button class="sound-toggle-btn" id="soundToggle" onclick="toggleSound()">🔇 心拍音 OFF</button>
+  </div>
+
+  <div class="chat-container">
+    <div class="chat-messages" id="messages"></div>
+  </div>
+
+  <div class="input-area">
+    <div class="hint-row">
+      <button class="hint-btn" onclick="toggleHint()">💡 ヒント(用意している薬剤)</button>
+      <button class="finish-btn" id="finishBtn" onclick="finishButtonPressed()">✓ 対応終了</button>
+    </div>
+    <div class="hint-panel" id="hintPanel">
+      <b>現在準備済みの薬剤</b>:<br>
+      プロポフォール、レミフェンタニル、フェンタニル、ロクロニウム、スガマデックス、エフェドリン、フェニレフリン<br>
+      <span style="color:#aebcd0; font-size:12px;">これら以外の薬剤を使いたい場合は、テキストか音声で「アドレナリンを準備して」のように伝えてください。</span>
+    </div>
+    <div class="input-row">
+      <textarea class="text-input" id="input" placeholder="次に何をしますか?例: 皮膚を確認したい、フェニレフリン投与..." onkeydown="onInputKey(event)"></textarea>
+      <button class="icon-btn" id="micBtn" onclick="startVoice()" title="音声入力">🎤</button>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">送信</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =====================================================
+// 状態
+// =====================================================
+const FLOOR = { sbp: 60, spo2: 92, hr_max: 130 };
+
+let state = {
+  vitals: { hr: 95, sbp: 78, dbp: 45, spo2: 98, etco2: 35, bis: 45, rr: 12 },
+  history: [],            // LLM messages history
+  apiKey: localStorage.getItem("ANTHROPIC_API_KEY") || "",
+  startTime: Date.now(),
+  lastInputTime: Date.now(),
+  diagnosisReached: false,
+  vasopressorGiven: false,
+  vasopressorRecoveryTimer: null,
+  promptTimer: null,
+  trendTimer: null,
+  revealed: new Set(),     // 既に明らかにした所見
+  phase: "diagnostic",     // "diagnostic" → "treatment" → "complete"
+  treatments: {},          // adrenaline, iv18G, fluid, stopCefazolin, fio2, help, surgeryStopped, icu, tryptase, bronchodilator, aline, steroid, antihistamine, sevoInhale
+  adrenalineMentionedPreDx: false, // 診断前にアドレナリンに触れたか
+  adrenalineProposed: false,       // 治療フェーズでアドレナリン提案済(投与経路待ち)
+  surgeryPromptShown: false,       // 「手術は?」を促したか
+  airwayPromptShown: false,        // 「気道は?」を促したか
+  surgeryAfterIcuPromptShown: false // ICU先決定→「手術は?」を促したか
+};
+
+// =====================================================
+// シナリオ・システムプロンプト
+// =====================================================
+const SCENARIO_NOTES = `
+シナリオ(学習者に絶対明かさない):
+- 45歳女性、腹腔鏡下胆嚢摘出術、全身麻酔(TIVA: プロポフォール+レミフェンタニル)
+- 挿管完了済、TAPブロック準備中
+- セファゾリン1g投与開始1分後にバイタル変化
+- 真の診断: <b>セファゾリンによるアナフィラキシー(Grade III)</b>
+- 隠れている所見(学習者が観察行動を取ったら開示):
+  * 皮膚: 顔面〜前胸部に紅斑+膨疹
+  * 聴診: 両肺野で呼気時の喘鳴(wheezing)、左右差なし
+  * 気道内圧: 18 → 32 cmH₂O に上昇
+  * 心電図: 洞性頻脈、ST-T 変化なし、QT正常
+  * 体温: 36.5℃ 正常
+  * 投与歴: セファゾリン1分前から、ロク/プロポ/レミは5-10分前で安定
+- 局所麻酔薬はまだ未投与(LASTは除外可)
+`;
+
+function buildSystemPrompt() {
+  const v = state.vitals;
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+
+  let phaseSection;
+  if (state.phase === "diagnostic") {
+    phaseSection = `
+【現在: 診断フェーズ】
+学習者は血圧低下の原因を考えています。
+- 観察行動 → 該当する隠れた所見を伝える(例: 「皮膚見ます」→紅斑+膨疹)
+- 薬剤投与 → 薬剤効果を描写。エフェドリン/フェニレフリンは一時改善後に再低下(根本治療ではない)
+- <b>アドレナリンやセファゾリン中止など根本治療を診断前に提案された場合</b> → 即座に効かせず、<b>「○○を考えているのですね。診断は何だと思いますか?」と聞き返す</b>。診断を確認してから治療フェーズに進む。
+- 「アナフィラキシー」と発言 → 正解として迎え、Grade III であることを伝える。<b>治療リストは出さない</b>。diagnosis_reached: true。<b>もし前のターンでアドレナリンに触れていたら</b>、「正解です。Grade III アナフィラキシー。アドレナリンが有効ですね。投与量と方法は?」のように自然につなぐ
+- <b>探索的なつぶやき</b>(「喘息かな?」「麻酔薬の効きすぎでは?」「気胸?」「心筋虚血?」「肺塞栓?」など)→ <b>即座に否定/肯定せず、engagement</b>:「○○も鑑別に挙がりますね。確認するには ×× してみては?」のように受け止めて観察行動を促す。diagnosis_reached: false のまま。
+  - 例: 「喘息かな」→「気管支攣縮の可能性は確かに。聴診で喘鳴を確認してみては?」
+  - 例: 「麻酔薬が効きすぎかな」→「麻酔薬深度過多も鑑別に。昇圧薬で反応するか試してみては?」
+  - 例: 「気胸?」→「陽圧換気で起こりうる。聴診の左右差や気道内圧を確認してみては?」
+  - 例: 「肺塞栓?」→「EtCO₂の急低下が手がかり。本症例では維持されているので可能性は低そう」
+- 誤った断定的診断 → やんわり別の所見を促す
+- ヒントは具体的すぎないように。例: 「血圧低下の原因を考えながら、患者の観察や投薬を試してみましょう」`;
+  } else if (state.phase === "treatment") {
+    const tDone = Object.entries(state.treatments).filter(([k, v]) => v).map(([k]) => k).join(", ") || "なし";
+    phaseSection = `
+【現在: 治療フェーズ】
+診断は既に「セファゾリンによるアナフィラキシー Grade III」と確定済。学習者は治療を提案中。
+
+<b>必須治療(これらが揃うとシミュレーション完了):</b>
+(1) <b>アドレナリン投与</b>(0.05〜0.1 mg 緩徐静注)
+(2) <b>太い末梢ライン追加確保</b>(<b>18G または 16G</b>、どちらも正解)
+(3) <b>大量晶質液負荷</b>(太いライン経由)
+(4) <b>抜管せず ICU 搬送</b>(気道浮腫リスクのため)
+
+<b>オプション(完了条件ではないが評価する):</b>
+- セファゾリン投与中止
+- 手術中止
+- FiO₂ 100%
+- 応援要請
+- Aライン確保
+- β2 刺激薬吸入(サルブタモール等)
+- ステロイド・抗ヒスタミン薬
+- セボフルラン吸入(気管支拡張作用)
+- 後日トリプターゼ採血・皮膚テスト
+
+実施済み: ${tDone}
+
+対応方針:
+- 正しい治療 → 効果を描写、vitals改善(アドレナリンが最も効果的)
+- <b>アドレナリンを提案された(経路・量の指定なし)</b> → 「アドレナリンですね。投与経路と量は?」と確認。<b>静脈ライン確保済</b>であることを意識させる
+- <b>アドレナリン + 筋注</b> → 「静脈ラインがあるので 0.05〜0.1 mg を緩徐に静注がベター」と提案
+- <b>アドレナリン + 1 mg 静注</b> → <b>注意:1 mg は心停止用量</b>と警告し、0.05〜0.1 mg に減量するよう促す
+- <b>アドレナリン + 0.05〜0.1 mg 静注</b> → 正解として効果を描写、vitals改善
+- Aライン確保・β2吸入・セボ吸入・ステロイド・抗ヒスタミン → 「並列で価値ある対応」と評価
+- 22Gラインで輸液 → 流量不足を指摘、18G確保を促す
+- 抜管しよう → 気道浮腫リスクを指摘、挿管維持を推奨
+
+<b>促しフロー(followup_prompt フィールド・順序前後OK)</b>:
+- 必須3つ(アドレナリン・太いライン・大量輸液)が揃った段階で、まだ手術中止が決まっていない → followup_prompt: 「バイタルは安定してきました。この後はどうしますか? 手術は行いますか?」
+- 手術中止が決まった後、まだ気道方針が決まっていない → followup_prompt: 「アナフィラキシーでは気道浮腫の可能性があります。抜管はどう判断しますか?」
+- 逆に ICU/抜管せず が先に決まって 手術が未決定 → followup_prompt: 「ICU搬送の準備は OK ですね。手術はどうしますか?」
+- <b>完了条件: 必須3つ + 手術中止 + 抜管せずICU の全てが揃ったら complete: true</b>
+
+「アナフィラキシー」と発言 → もう確定済なので「具体的にどう治療?」と返す`;
+  } else {
+    phaseSection = "【現在: 完了】 シミュレーションは完了済。";
+  }
+
+  return `あなたは麻酔科教育シミュレーションの「指導医AI」です。学習者(医学部生・初期研修医)が「次に何をするか」をテキストまたは音声で入力します。あなたは患者・モニタ・術者の代弁者として、医学的に妥当な反応を簡潔に返します。
+
+${SCENARIO_NOTES}
+
+現在のバイタル: HR ${v.hr}, NIBP ${v.sbp}/${v.dbp}, SpO₂ ${v.spo2}%, EtCO₂ ${v.etco2}, BIS ${v.bis}
+発症からの経過: ${elapsed}秒
+既に明らかになっている所見: ${[...state.revealed].join("、") || "なし"}
+これまで投与された血管作動薬: ${state.vasopressorGiven ? "あり" : "なし"}
+
+【常時の応答ルール — 全フェーズ共通】
+- <b>教科書的な質問</b>(「血圧の正常値?」「アドレナリンの投与量は?」「BISの目安は?」「アナフィラキシーの Grade 分類?」「ガイドライン名は?」など)→ 簡潔に答える(40〜80字)。答えた後「シミュレーションに戻りましょう」と促してよい。シナリオから脱線しすぎない。
+- <b>自然な対話</b>を心がける。テンプレ的にならず、状況に応じて応答スタイルを変える。
+- 学習者の理解度に合わせて、初期研修医レベルでわかる言葉を使う。
+${phaseSection}
+
+【出力は必ず以下のJSON形式・余計な文章なし】
+{
+  "narration": "学習者への返答(80〜200字、口語、HTMLの<b>強調可</b>)",
+  "vitals_delta": {"sbp": 0, "spo2": 0, "hr": 0, "dbp": 0},
+  "reveal": ["紅斑"],
+  "diagnosis_reached": false,
+  "complete": false,
+  "hint": null,
+  "followup_prompt": null
+}
+
+followup_prompt は通常 null。<b>必須治療がそろった時点でICUの提案が無い場合のみ</b>、気道管理・搬送について問いかける文を入れる(narration に続いて表示される二の矢)`;
+}
+
+// =====================================================
+// メッセージ表示
+// =====================================================
+function addMessage(role, text, cls = "") {
+  const div = document.createElement("div");
+  div.className = `message ${role} ${cls}`;
+  const avatar = role === "instructor" ? "🩺" : (role === "system" ? "💡" : "👤");
+  div.innerHTML = `
+    <div class="avatar">${avatar}</div>
+    <div class="bubble">${text}</div>
+  `;
+  const messagesEl = document.getElementById("messages");
+  messagesEl.appendChild(div);
+  // chat-messages コンテナ内をスクロール(固定入力欄の裏に隠れないように)
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addTypingIndicator() {
+  const div = document.createElement("div");
+  div.className = "message instructor typing";
+  div.id = "typing";
+  div.innerHTML = `<div class="avatar">🩺</div><div class="bubble">考え中...</div>`;
+  const messagesEl = document.getElementById("messages");
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function removeTyping() {
+  const t = document.getElementById("typing");
+  if (t) t.remove();
+}
+
+// =====================================================
+// バイタル更新
+// =====================================================
+function applyVitalsDelta(delta) {
+  const v = state.vitals;
+  if (delta.sbp) v.sbp = Math.max(FLOOR.sbp, Math.min(180, v.sbp + delta.sbp));
+  if (delta.dbp) v.dbp = Math.max(35, Math.min(110, v.dbp + delta.dbp));
+  if (delta.spo2) v.spo2 = Math.max(FLOOR.spo2, Math.min(100, v.spo2 + delta.spo2));
+  if (delta.hr) v.hr = Math.max(40, Math.min(FLOOR.hr_max, v.hr + delta.hr));
+  if (delta.etco2) v.etco2 = Math.max(20, Math.min(60, v.etco2 + delta.etco2));
+  if (delta.bis) v.bis = Math.max(20, Math.min(100, v.bis + delta.bis));
+  renderVitals();
+}
+
+function setVitals(updates) {
+  Object.assign(state.vitals, updates);
+  renderVitals();
+}
+
+// =====================================================
+// 心拍音(SpO₂連動ピッチ、Web Audio API)
+// =====================================================
+const SOUND_LS_KEY = "chat_sim_sound_v1";
+let audioCtx = null;
+let pulseTimeoutId = null;
+state.soundEnabled = (localStorage.getItem(SOUND_LS_KEY) === "1");
+
+function mapSpo2ToFreq(spo2) {
+  if (typeof spo2 !== "number") return 880;
+  const clamped = Math.max(60, Math.min(100, spo2));
+  // SpO2 100% → 880Hz、80% → 440Hz(20%低下で1オクターブ下)
+  return 880 * Math.pow(2, (clamped - 100) / 20);
+}
+
+function playPulseBeep() {
+  if (!state.soundEnabled) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const freq = mapSpo2ToFreq(state.vitals.spo2);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const now = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
+    gain.gain.setValueAtTime(0.05, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  } catch (e) { console.warn("Pulse tone error:", e); }
+}
+
+function startPulseLoop() {
+  stopPulseLoop();
+  if (!state.soundEnabled) return;
+  function tick() {
+    if (!state.soundEnabled) { pulseTimeoutId = null; return; }
+    const hr = state.vitals.hr;
+    if (typeof hr === "number" && hr > 0) playPulseBeep();
+    const interval = (typeof hr === "number" && hr > 30) ? 60000 / hr : 1000;
+    pulseTimeoutId = setTimeout(tick, interval);
+  }
+  tick();
+}
+
+function stopPulseLoop() {
+  if (pulseTimeoutId) { clearTimeout(pulseTimeoutId); pulseTimeoutId = null; }
+}
+
+function toggleSound() {
+  state.soundEnabled = !state.soundEnabled;
+  try { localStorage.setItem(SOUND_LS_KEY, state.soundEnabled ? "1" : "0"); } catch (e) {}
+  if (state.soundEnabled) {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    startPulseLoop();
+  } else {
+    stopPulseLoop();
+  }
+  updateSoundUI();
+}
+
+function updateSoundUI() {
+  const btn = document.getElementById("soundToggle");
+  if (btn) {
+    btn.textContent = state.soundEnabled ? "🔊 心拍音 ON" : "🔇 心拍音 OFF";
+    btn.classList.toggle("active", state.soundEnabled);
+  }
+}
+
+// =====================================================
+// 波形描画(ECG / Pleth / Capnogram / EEG)
+// =====================================================
+function ecgVal(phase) {
+  if (phase < 0.10) return 0;
+  if (phase < 0.16) { const x = (phase - 0.10) / 0.06; return Math.sin(x * Math.PI) * 0.15; }
+  if (phase < 0.22) return 0;
+  if (phase < 0.235) return -((phase - 0.22) / 0.015) * 0.15;
+  if (phase < 0.250) return -0.15 + ((phase - 0.235) / 0.015) * 1.25;
+  if (phase < 0.270) return 1.10 - ((phase - 0.250) / 0.020) * 1.55;
+  if (phase < 0.290) return -0.45 + ((phase - 0.270) / 0.020) * 0.45;
+  if (phase < 0.42) return 0;
+  if (phase < 0.58) { const x = (phase - 0.42) / 0.16; return Math.sin(x * Math.PI) * 0.28; }
+  return 0;
+}
+function plethVal(phase, amp) {
+  if (phase < 0.18) return Math.sin((phase / 0.18) * Math.PI / 2) * amp;
+  if (phase < 0.32) { const x = (phase - 0.18) / 0.14; return amp * (1.0 - x * 0.40); }
+  if (phase < 0.40) { const x = (phase - 0.32) / 0.08; return amp * (0.60 - x * 0.18); }
+  if (phase < 0.85) { const x = (phase - 0.40) / 0.45; return amp * 0.42 * (1.0 - x); }
+  return 0;
+}
+function capnoVal(phase, et) {
+  if (typeof et !== "number") return 0;
+  const norm = et / 50;
+  if (phase < 0.30) return 0;
+  if (phase < 0.33) return ((phase - 0.30) / 0.03) * norm;
+  if (phase < 0.92) return norm + ((phase - 0.33) / 0.59) * 0.04 * norm;
+  if (phase < 0.95) return norm * 1.04 * (1.0 - (phase - 0.92) / 0.03);
+  return 0;
+}
+const burstState = { active: false, startTime: 0, nextBurstAt: 0 };
+function eegVal(t, bis) {
+  if (typeof bis !== "number") return 0;
+  if (bis < 25) {
+    if (!burstState.active && t >= burstState.nextBurstAt) {
+      burstState.active = true; burstState.startTime = t;
+    }
+    if (burstState.active) {
+      const e = t - burstState.startTime;
+      if (e > 0.6) { burstState.active = false; burstState.nextBurstAt = t + 2 + Math.random() * 2; return 0; }
+      const env = Math.sin(e / 0.6 * Math.PI);
+      return (Math.sin(t * 2 * Math.PI * 12) * 0.5 + Math.sin(t * 2 * Math.PI * 20 + 1.3) * 0.3 + Math.sin(t * 2 * Math.PI * 8 + 2.1) * 0.4) * env * 0.85;
+    }
+    return (Math.random() - 0.5) * 0.04;
+  }
+  let domFreq;
+  if (bis < 40) domFreq = 0.8 + (bis / 40) * 2.5;
+  else if (bis < 60) domFreq = 3.3 + ((bis - 40) / 20) * 3.5;
+  else if (bis < 80) domFreq = 6.8 + ((bis - 60) / 20) * 5;
+  else domFreq = 11.8 + ((bis - 80) / 20) * 13;
+  let amp;
+  if (bis < 50) amp = 0.65 - (50 - bis) * 0.008;
+  else if (bis < 75) amp = 0.55 - (bis - 50) * 0.010;
+  else amp = 0.30 - (bis - 75) * 0.005;
+  amp = Math.max(0.10, amp);
+  let v = 0;
+  v += Math.sin(t * 2 * Math.PI * domFreq) * amp;
+  v += Math.sin(t * 2 * Math.PI * domFreq * 1.7 + 1.3) * amp * 0.4;
+  v += Math.sin(t * 2 * Math.PI * domFreq * 0.6 + 2.1) * amp * 0.35;
+  v += Math.sin(t * 2 * Math.PI * 35 + t * 7) * (bis / 100) * 0.05;
+  return v;
+}
+
+const SPEED_FAST = 80;
+const SPEED_SLOW = 32;
+const waves = { ecg: null, pleth: null, capno: null, eeg: null };
+
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+  const dpr = window.devicePixelRatio || 1;
+  let rect = canvas.getBoundingClientRect();
+  let w = rect.width || (canvas.parentElement ? canvas.parentElement.getBoundingClientRect().width : 400);
+  let h = rect.height || 48;
+  if (w === 0) w = 400;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  return { canvas, ctx, w, h, x: 0, lastY: h / 2, timeAcc: 0, lastTime: performance.now(), justWrapped: true };
+}
+
+function drawWave(s, color, valueFn, period, speed) {
+  if (!s) return;
+  const now = performance.now();
+  let dt = (now - s.lastTime) / 1000;
+  s.lastTime = now;
+  if (dt > 0.5) { s.timeAcc += dt; return; }
+  s.timeAcc += dt;
+  const advance = speed * dt;
+  const newX = s.x + advance;
+  const phase = (s.timeAcc % period) / period;
+  const value = valueFn(phase);
+  const newY = s.h / 2 - value * (s.h * 0.38);
+  s.ctx.clearRect(newX, 0, 24, s.h);
+  if (!s.justWrapped) {
+    s.ctx.strokeStyle = color;
+    s.ctx.lineWidth = 1.6;
+    s.ctx.lineCap = "round";
+    s.ctx.lineJoin = "round";
+    s.ctx.beginPath();
+    s.ctx.moveTo(s.x, s.lastY);
+    s.ctx.lineTo(newX, newY);
+    s.ctx.stroke();
+  }
+  s.lastY = newY; s.x = newX; s.justWrapped = false;
+  if (s.x >= s.w) { s.x = 0; s.justWrapped = true; s.ctx.clearRect(0, 0, 24, s.h); }
+}
+
+function drawEEG(s, bis) {
+  if (!s) return;
+  const now = performance.now();
+  let dt = (now - s.lastTime) / 1000;
+  s.lastTime = now;
+  if (dt > 0.5) { s.timeAcc += dt; return; }
+  s.timeAcc += dt;
+  const advance = SPEED_FAST * dt;
+  const newX = s.x + advance;
+  const value = eegVal(s.timeAcc, bis);
+  const newY = s.h / 2 - value * (s.h * 0.25);
+  s.ctx.clearRect(newX, 0, 24, s.h);
+  if (!s.justWrapped) {
+    s.ctx.strokeStyle = "#ff9933";
+    s.ctx.lineWidth = 1.4;
+    s.ctx.lineCap = "round";
+    s.ctx.lineJoin = "round";
+    s.ctx.beginPath();
+    s.ctx.moveTo(s.x, s.lastY);
+    s.ctx.lineTo(newX, newY);
+    s.ctx.stroke();
+  }
+  s.lastY = newY; s.x = newX; s.justWrapped = false;
+  if (s.x >= s.w) { s.x = 0; s.justWrapped = true; s.ctx.clearRect(0, 0, 24, s.h); }
+}
+
+let animationFrameId = null;
+function waveLoop() {
+  if (waves.ecg && state.vitals.hr > 0) {
+    const p = 60 / state.vitals.hr;
+    // 脈圧から振幅を導出(本来は plethAmp が別管理だが、ここではシンプルに)
+    const pulsePressure = state.vitals.sbp - state.vitals.dbp;
+    const plethAmp = Math.min(1.0, Math.max(0.2, pulsePressure / 50));
+    drawWave(waves.ecg, "#00ff66", ecgVal, p, SPEED_FAST);
+    drawWave(waves.pleth, "#00d4ff", (ph) => plethVal(ph, plethAmp), p, SPEED_FAST);
+  }
+  if (waves.capno && state.vitals.rr > 0 && typeof state.vitals.etco2 === "number") {
+    const p = 60 / state.vitals.rr;
+    drawWave(waves.capno, "#ffffff", (ph) => capnoVal(ph, state.vitals.etco2), p, SPEED_SLOW);
+  }
+  if (waves.eeg && typeof state.vitals.bis === "number") {
+    drawEEG(waves.eeg, state.vitals.bis);
+  }
+  animationFrameId = requestAnimationFrame(waveLoop);
+}
+
+function reinitCanvases() {
+  waves.ecg = setupCanvas("ecg");
+  waves.pleth = setupCanvas("pleth");
+  waves.capno = setupCanvas("capno");
+  waves.eeg = setupCanvas("eeg");
+}
+
+function renderVitals() {
+  const v = state.vitals;
+  document.getElementById("v-hr").textContent = v.hr;
+  document.getElementById("v-bp").textContent = `${v.sbp}/${v.dbp}`;
+  document.getElementById("v-map").textContent = `(${Math.round((v.sbp + 2 * v.dbp) / 3)})`;
+  document.getElementById("v-spo2").textContent = v.spo2;
+  document.getElementById("v-co2").textContent = v.etco2;
+  document.getElementById("v-bis").textContent = v.bis;
+  // 低値表示
+  document.getElementById("v-bp").className = "value v-bp " + (v.sbp < 70 ? "low" : (v.sbp < 90 ? "warn" : ""));
+  document.getElementById("v-spo2").className = "value v-spo2 " + (v.spo2 < 94 ? "low" : (v.spo2 < 96 ? "warn" : ""));
+  document.getElementById("v-hr").className = "value v-hr " + (v.hr > 120 ? "warn" : "");
+}
+
+// バイタルの緩徐な悪化(時間経過)
+function startVitalsTrend() {
+  if (state.trendTimer) clearInterval(state.trendTimer);
+  state.trendTimer = setInterval(() => {
+    if (state.diagnosisReached) return;
+    // 10秒に1回、緩徐に悪化
+    if (state.vitals.sbp > FLOOR.sbp) state.vitals.sbp -= 1;
+    if (state.vitals.spo2 > FLOOR.spo2) state.vitals.spo2 -= 0.4;
+    state.vitals.spo2 = Math.round(state.vitals.spo2 * 10) / 10 | 0;
+    if (state.vitals.hr < 115) state.vitals.hr += 1;
+    if (state.vitals.dbp > 30) state.vitals.dbp -= 0.5;
+    state.vitals.dbp = Math.round(state.vitals.dbp);
+    renderVitals();
+  }, 10000); // 10秒毎
+}
+
+// 一定時間入力がなければ催促
+function startPromptWatch() {
+  if (state.promptTimer) clearInterval(state.promptTimer);
+  state.promptTimer = setInterval(() => {
+    if (state.diagnosisReached) return;
+    const sinceInput = (Date.now() - state.lastInputTime) / 1000;
+    const sinceStart = (Date.now() - state.startTime) / 1000;
+    if (sinceInput > 35 && sinceStart > 20) {
+      addMessage("system", "時間が経過しています。何か対応を考えてみてください。観察? 薬剤? 応援要請?");
+      state.lastInputTime = Date.now(); // 連打防止
+    }
+  }, 8000);
+}
+
+// =====================================================
+// 入力処理
+// =====================================================
+async function sendMessage() {
+  const input = document.getElementById("input");
+  const userText = input.value.trim();
+  if (!userText) return;
+  input.value = "";
+  state.lastInputTime = Date.now();
+
+  addMessage("student", escapeHtml(userText));
+
+  document.getElementById("sendBtn").disabled = true;
+  addTypingIndicator();
+
+  let response;
+  if (state.apiKey) {
+    try { response = await callClaude(userText); }
+    catch (e) {
+      console.warn("LLM failed:", e);
+      response = ruleBasedResponse(userText);
+      response.narration = `(LLM接続エラー: ${e.message} — ルールベースに切替)<br><br>` + response.narration;
+    }
+  } else {
+    response = ruleBasedResponse(userText);
+  }
+
+  removeTyping();
+  document.getElementById("sendBtn").disabled = false;
+
+  if (response.vitals_delta) applyVitalsDelta(response.vitals_delta);
+  if (response.reveal) response.reveal.forEach(r => state.revealed.add(r));
+
+  const cls = response.diagnosis_reached ? "correct" : "";
+  addMessage("instructor", response.narration, cls);
+
+  if (response.hint) {
+    setTimeout(() => addMessage("system", "💡 " + response.hint), 600);
+  }
+
+  if (response.followupPrompt) {
+    setTimeout(() => addMessage("instructor", response.followupPrompt), 1400);
+  }
+
+  if (response.diagnosis_reached) {
+    state.diagnosisReached = true;
+    state.phase = "treatment";
+    setTimeout(() => {
+      if (state.adrenalineMentionedPreDx) {
+        addMessage("instructor",
+          "<b>アドレナリンが有効です。</b>投与量と投与方法は?"
+        );
+      } else {
+        addMessage("instructor",
+          "現在、<b>セファゾリン投与中</b>です。対応は?"
+        );
+      }
+    }, 1500);
+  }
+
+  if (response.complete) {
+    state.phase = "complete";
+    if (state.trendTimer) { clearInterval(state.trendTimer); state.trendTimer = null; }
+    if (state.promptTimer) { clearInterval(state.promptTimer); state.promptTimer = null; }
+    setTimeout(() => {
+      setVitals({ hr: 90, sbp: 118, dbp: 72, spo2: 99, etco2: 35, bis: 45 });
+      addMessage("instructor", buildCompletionSummary(), "correct");
+      showCompletionBanner();
+    }, 1200);
+  }
+}
+
+// =====================================================
+// 「対応終了」ボタン押下時の処理
+// =====================================================
+function finishButtonPressed() {
+  if (state.phase === "complete") return;
+
+  // まだ診断にも至っていない場合
+  if (state.phase !== "treatment") {
+    addMessage("system",
+      "まだ治療フェーズに到達していません。<b>診断を確定</b>してから「対応終了」を押してください。"
+    );
+    return;
+  }
+
+  const t = state.treatments;
+  const r = state.revealed;
+
+  // 必須項目チェック
+  const requiredChecks = [
+    { label: "アナフィラキシーの診断",        done: state.diagnosisReached },
+    { label: "皮膚観察(紅斑+膨疹の確認)",     done: r.has("紅斑") || r.has("膨疹") },
+    { label: "聴診(喘鳴の確認)",              done: r.has("喘鳴") },
+    { label: "アドレナリン投与",              done: !!t.adrenaline },
+    { label: "酸素濃度を上げる(FiO₂ 100%)",   done: !!t.fio2 },
+    { label: "大量輸液",                      done: !!t.fluid },
+    { label: "太いライン確保(18G or 16G)",    done: !!t.iv18G }
+  ];
+  const missing = requiredChecks.filter(c => !c.done);
+
+  if (missing.length > 0) {
+    // 必須未達 → リスト表示
+    addMessage("system",
+      "<b>必須対応の状況:</b><br>" +
+      requiredChecks.map(c => (c.done ? "✅ " : "⬜ ") + c.label).join("<br>") +
+      "<br><br>足りない対応を実施してから、もう一度「対応終了」を押してください。"
+    );
+    return;
+  }
+
+  // 最終判断チェック
+  const finalQuestions = [];
+  if (!t.icu)            finalQuestions.push("<b>抜管</b>はどうしますか? <b>搬送先</b>は病棟? それとも ICU?");
+  if (!t.surgeryStopped) finalQuestions.push("<b>手術</b>はどうしますか? 続行? それとも中止?");
+
+  if (finalQuestions.length > 0) {
+    addMessage("instructor",
+      "ここまでの必須対応はOKです。最終判断を確認させてください:<br><br>" +
+      finalQuestions.join("<br><br>")
+    );
+    return;
+  }
+
+  // 全て揃った → 完了
+  triggerCompletion();
+}
+
+function triggerCompletion() {
+  state.phase = "complete";
+  if (state.trendTimer) { clearInterval(state.trendTimer); state.trendTimer = null; }
+  if (state.promptTimer) { clearInterval(state.promptTimer); state.promptTimer = null; }
+  setVitals({ hr: 90, sbp: 118, dbp: 72, spo2: 99, etco2: 35, bis: 45 });
+  addMessage("instructor", buildCompletionSummary(), "correct");
+  showCompletionBanner();
+}
+
+function showCompletionBanner() {
+  // 心拍音停止
+  stopPulseLoop();
+  // 入力欄・各ボタンを無効化
+  const inp = document.getElementById("input");
+  const sendBtn = document.getElementById("sendBtn");
+  const micBtn = document.getElementById("micBtn");
+  const finishBtn = document.getElementById("finishBtn");
+  if (inp) { inp.disabled = true; inp.placeholder = "シミュレーション完了"; }
+  if (sendBtn) sendBtn.disabled = true;
+  if (micBtn) micBtn.disabled = true;
+  if (finishBtn) finishBtn.disabled = true;
+  // 既存バナーがあれば削除(再起動時のため)
+  const existing = document.querySelector(".completion-banner");
+  if (existing) existing.remove();
+  // バナー表示
+  const banner = document.createElement("div");
+  banner.className = "completion-banner";
+  banner.innerHTML = `
+    <div class="icon">🎉</div>
+    <div class="text">
+      <div class="t1">シミュレーション完了</div>
+      <div class="t2">セファゾリンによる周術期アナフィラキシー対応 — お疲れさまでした</div>
+    </div>
+    <button class="restart-btn" onclick="location.href='index.html'">🏠 最初に戻る(麻酔導入Q1から)</button>
+    <button class="restart-btn" onclick="location.reload()" style="margin-left:6px;">🔁 チャットだけやり直す</button>
+  `;
+  document.body.insertAdjacentElement("afterbegin", banner);
+  // ページ全体をバナー分下にずらす
+  document.body.style.paddingTop = (banner.offsetHeight + 8) + "px";
+}
+
+function buildCompletionSummary() {
+  const t = state.treatments;
+  const r = state.revealed;
+  const required = [
+    "✓ 診断:アナフィラキシー(Grade III)",
+    (r.has("紅斑") || r.has("膨疹")) ? "✓ 皮膚観察(紅斑+膨疹)" : "✗ 皮膚観察",
+    r.has("喘鳴") ? "✓ 聴診(喘鳴)" : "✗ 聴診",
+    t.adrenaline ? "✓ アドレナリン投与" : "✗ アドレナリン投与",
+    t.fio2 ? "✓ FiO₂ 100%" : "✗ FiO₂ 100%",
+    t.iv18G ? "✓ 太いライン確保(18G/16G)" : "✗ 太いライン確保",
+    t.fluid ? "✓ 大量輸液" : "✗ 大量輸液",
+    t.surgeryStopped ? "✓ 手術中止" : "✗ 手術中止",
+    t.icu ? "✓ 抜管せず ICU 搬送" : "✗ 抜管せず ICU 搬送"
+  ];
+  const optionalLabels = {
+    stopCefazolin:  "セファゾリン投与中止",
+    surgeryStopped: "手術中止",
+    fio2:           "FiO₂ 100%",
+    help:           "応援要請",
+    aline:          "Aライン確保",
+    bronchodilator: "β2 刺激薬吸入",
+    steroid:        "ステロイド",
+    antihistamine:  "抗ヒスタミン薬",
+    sevoInhale:     "セボフルラン吸入(気管支拡張)",
+    tryptase:       "トリプターゼ計画"
+  };
+  const optional = Object.entries(optionalLabels)
+    .filter(([k, _]) => t[k])
+    .map(([_, label]) => "✓ " + label);
+  let summary = "<b>🎉 シミュレーション完了</b><br>" +
+    "vitals が安定、手術中止、挿管管理のまま ICU へ搬送。<br><br>" +
+    "<b>必須対応(4 + 診断):</b><br>" + required.join("<br>");
+  if (optional.length > 0) {
+    summary += "<br><br><b>並列で実施した対応:</b><br>" + optional.join("<br>");
+  }
+  summary += "<br><br>セファゾリンによる周術期アナフィラキシーへの一連の対応 — <b>お疲れさまでした。</b>";
+  return summary;
+}
+
+function onInputKey(e) {
+  // IME(漢字変換)中の Enter は送信しない
+  // e.isComposing: 標準 / e.keyCode === 229: 一部ブラウザのフォールバック
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// =====================================================
+// Claude API
+// =====================================================
+async function callClaude(userText) {
+  state.history.push({ role: "user", content: userText });
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": state.apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      system: buildSystemPrompt(),
+      messages: state.history
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+  const text = data.content[0].text;
+  state.history.push({ role: "assistant", content: text });
+  return parseClaudeResponse(text);
+}
+
+function parseClaudeResponse(text) {
+  // JSON抽出
+  const m = text.match(/\{[\s\S]*\}/);
+  if (m) {
+    try {
+      const obj = JSON.parse(m[0]);
+      return {
+        narration: obj.narration || text,
+        vitals_delta: obj.vitals_delta || {},
+        reveal: obj.reveal || [],
+        diagnosis_reached: !!obj.diagnosis_reached,
+        complete: !!obj.complete,
+        hint: obj.hint || null,
+        followupPrompt: obj.followup_prompt || obj.followupPrompt || null
+      };
+    } catch (e) { console.warn("JSON parse failed:", e); }
+  }
+  return { narration: text, vitals_delta: {}, reveal: [], diagnosis_reached: false, complete: false, hint: null, followupPrompt: null };
+}
+
+// =====================================================
+// ルールベース(フォールバック)
+// =====================================================
+function checkSideQuery(text) {
+  // 教科書的な質問への簡潔な回答(診断/治療フェーズに関係なく動く)
+  const isQuestion = /[?？]|教えて|なん|何|どれ|どこ|いくつ|わから|知ら|だっけ/.test(text);
+  if (!isQuestion) return null;
+
+  // 正常値系
+  if (/正常値|正常.*範囲|目安|normal/i.test(text)) {
+    if (/血圧|BP|SBP|DBP/i.test(text))   return "成人正常血圧は SBP 120 / DBP 80 程度。術中は患者のベースライン ±20% を目標にすることが多いです。";
+    if (/心拍|HR|脈/i.test(text))         return "成人正常心拍数は 60〜100 bpm。徐脈 <60、頻脈 >100 が定義です。";
+    if (/SpO|酸素飽和|spo2/i.test(text)) return "正常 SpO₂ は 96〜100%(室内気)。麻酔中で FiO₂ 上げていれば 99-100% が通常。";
+    if (/BIS/i.test(text))                return "BIS は 覚醒 90-100、浅鎮静 60-80、手術麻酔 40-60、深麻酔 20-40、バーストサプレッション <20。";
+    if (/EtCO/i.test(text))               return "正常 EtCO₂ は 35〜45 mmHg。動脈血 PaCO₂ より 2〜5 mmHg 低いのが通常。";
+    if (/体温|温度/i.test(text))          return "正常体温は 36〜37℃。MH では 0.5℃/15分 のペースで急上昇します。";
+  }
+  // 投与量
+  if (/投与量|用量|何\s*mg|どれ.*ぐらい|どのくらい|量.*は/i.test(text)) {
+    if (/アドレナリン|エピネフリン/i.test(text)) return "アナフィラキシーでは <b>0.05〜0.1 mg IV(成人)</b> を緩徐静注、もしくは <b>0.3 mg IM</b>(大腿外側)。心停止では 1 mg IV。";
+    if (/フェニレフリン/i.test(text))            return "フェニレフリンは 0.05〜0.2 mg を IV ボーラス、持続なら 10〜200 μg/min。";
+    if (/エフェドリン/i.test(text))              return "エフェドリンは 5〜10 mg を IV ボーラス。総量 30 mg を目安に、それ以上は持続/他剤を考慮。";
+    if (/プロポフォール/i.test(text))            return "プロポフォールは導入 1.5〜2.5 mg/kg、維持 4〜10 mg/kg/hr。高齢者は減量。";
+    if (/ロクロニウム|ロク/i.test(text))         return "ロクロニウムは挿管用量 0.6〜1.0 mg/kg。スガマデックスで拮抗可能。";
+    if (/レミフェンタニル|レミ/i.test(text))      return "レミフェンタニルは 0.15〜0.5 μg/kg/min を持続。挿管時 0.5〜1 μg/kg をボーラス。";
+  }
+  // アナフィラキシーの分類
+  if (/グレード|分類|重症度/i.test(text) && /アナフィラキシー|allerg/i.test(text)) {
+    return "<b>Ring & Messmer 分類</b>: I 皮膚症状のみ / II 軽症全身(低血圧軽度・頻脈) / III 重症心血管・気道(本症例) / IV 心停止。";
+  }
+  // ガイドライン
+  if (/ガイドライン|guideline|文献|参考/i.test(text) && /アナフィラキシー/i.test(text)) {
+    return "日本アレルギー学会「アナフィラキシーガイドライン 2022」、WAO Anaphylaxis Guidance 2020、Br J Anaesth NAP6(Harper 2018)が代表的です。";
+  }
+  return null;
+}
+
+function checkExploratoryGuess(text) {
+  // 探索的な鑑別言及(「○○かな」「○○では?」)に engagement
+  // アナフィラキシー以外の鑑別をやんわり受け止めて、観察行動を促す
+  if (/喘息|気管支喘息|asthma/i.test(text)) {
+    if (state.revealed.has("喘鳴")) {
+      return "そうですね、聴診で<b>喘鳴は確認できている</b>ので、気管支攣縮は実際に起こっています。<br>ただし、他の所見(<b>皮膚症状、投与歴の時系列</b>など)も合わせると、より大きな病態が見えてくるかも。";
+    }
+    return "気管支攣縮の可能性は確かにありますね。<b>聴診で喘鳴</b>や <b>気道内圧の変化</b>を確認すると鑑別が進みます。";
+  }
+  if (/(麻酔薬|プロポフォール|レミ).*(深度|過多|効き|多い|濃|入れすぎ)|深麻酔|麻酔.*効きすぎ/i.test(text)) {
+    if (state.vasopressorGiven) {
+      return "麻酔薬深度過多も鑑別ですが、<b>すでに昇圧薬を投与しても改善が乏しかった</b>ので、麻酔薬深度の問題ではなさそうです。他の鑑別に移りましょう。";
+    }
+    return "麻酔薬深度過多も鑑別に挙がりますね。<b>昇圧薬(フェニレフリン/エフェドリン)で反応するか</b>、または<b>セボフルラン濃度を下げる</b>と切り分けできます。";
+  }
+  if (/心筋|虚血|心臓|MI|心筋梗塞|急性冠/i.test(text)) {
+    return "心筋虚血も考えうる病態ですね。<b>心電図のST-T変化</b>を確認してみては?";
+  }
+  if (/気胸|ptx|pneumothorax|肺虚脱/i.test(text)) {
+    return "陽圧換気下では気胸も鑑別に。<b>聴診の左右差</b>、<b>気道内圧上昇</b>を確認してみては?";
+  }
+  if (/肺塞栓|pe\b|肺梗塞|血栓.*肺/i.test(text)) {
+    return "肺塞栓も鑑別の一つですね。<b>EtCO₂の急低下</b>が手がかりになります。本症例ではEtCO₂が維持されているので可能性はやや低めかも。";
+  }
+  if (/高位脊麻|脊麻|脊髄.*ブロック/i.test(text)) {
+    return "高位脊麻は強い循環抑制を起こしますが、本症例では<b>TAPブロック準備中</b>で局所麻酔薬はまだ投与していないため、可能性は低いです。";
+  }
+  if (/出血性ショック|出血.*ショック|hemorrhag/i.test(text)) {
+    return "出血性ショックも常に鑑別に。<b>手術はまだ開始前</b>で、術野からの出血はないはず。点滴ラインのトラブルやベースラインを再確認しましょう。";
+  }
+  if (/敗血症|sepsis|sirs/i.test(text)) {
+    return "敗血症も考えられますが、<b>体温</b>を確認してみては? 急激な発症からは時相が合いにくいかも。";
+  }
+  if (/MH|悪性高熱|malignant.*hyperthermia/i.test(text)) {
+    return "MH は怖い鑑別ですが、<b>体温</b>と<b>EtCO₂の急上昇</b>が特徴。本症例ではいずれも該当しないようです。";
+  }
+  if (/LAST|局麻.*中毒|局所麻酔薬.*中毒/i.test(text)) {
+    return "LAST は重要な鑑別ですが、本症例では <b>TAPブロック準備中</b> で局所麻酔薬はまだ投与していないため、ほぼ除外できます。";
+  }
+  return null;
+}
+
+function ruleBasedResponse(text) {
+  // 教科書的な質問は最優先で対応(状況に関係なく)
+  const sideAnswer = checkSideQuery(text);
+  if (sideAnswer) {
+    return {
+      narration: sideAnswer + "<br><br><i>シミュレーションに戻りましょう。</i>",
+      vitals_delta: {}, reveal: [], diagnosis_reached: false, complete: false, hint: null
+    };
+  }
+  // フェーズに応じて分岐
+  if (state.phase === "treatment") return treatmentPhaseResponse(text);
+  if (state.phase === "complete") {
+    return { narration: "シミュレーションは完了しています。", vitals_delta: {}, reveal: [], diagnosis_reached: false, hint: null };
+  }
+  const t = text.toLowerCase();
+  // 診断発言(アナフィラキシーは確定として扱う)
+  if (/アナフィラキシー|anaphylax|アレルギー反応/i.test(text)) {
+    return {
+      narration: "<b>正解です。</b>セファゾリン投与開始1分後の急速な低血圧+紅斑+膨疹+喘鳴+気道内圧上昇から、<b>Grade III アナフィラキシー</b>が確定診断です。",
+      vitals_delta: {},
+      reveal: [],
+      diagnosis_reached: true,
+      hint: null
+    };
+  }
+  // 探索的なつぶやき(他の鑑別)→ engagement
+  const exp = checkExploratoryGuess(text);
+  if (exp) {
+    return {
+      narration: exp,
+      vitals_delta: {}, reveal: [], diagnosis_reached: false, complete: false, hint: null
+    };
+  }
+  // 皮膚
+  if (/皮膚|顔色|発疹|紅斑|膨疹|蕁麻疹|じんま/i.test(text)) {
+    return {
+      narration: "皮膚を露出して確認します。<b>顔面〜前胸部に紅斑と膨疹</b>を認めます。",
+      vitals_delta: {},
+      reveal: ["紅斑", "膨疹"],
+      diagnosis_reached: false,
+      hint: state.revealed.size >= 2 && !state.revealed.has("auscultate") ? "聴診や気道内圧も確認してみては?" : null
+    };
+  }
+  // 聴診
+  if (/聴診|胸の音|呼吸音|wheez|喘鳴/i.test(text)) {
+    return {
+      narration: "胸部を聴診します。<b>両肺野で呼気時に明らかな喘鳴(wheezing)</b>を聴取、左右差はありません。",
+      vitals_delta: {},
+      reveal: ["喘鳴"],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // 気道内圧
+  if (/気道内圧|peak.*pressure|気道圧/i.test(text)) {
+    return {
+      narration: "ピーク気道内圧を確認します。<b>18 → 32 cmH₂O に上昇</b>しています。",
+      vitals_delta: {},
+      reveal: ["気道内圧上昇"],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // 心電図
+  if (/心電図|ECG|EKG|ST|虚血/i.test(text)) {
+    return {
+      narration: "心電図波形を確認します。<b>洞性頻脈(110)、ST-T 変化なし、QT正常</b>。明らかな虚血所見はありません。",
+      vitals_delta: {},
+      reveal: ["心電図正常"],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // 投与歴
+  if (/投与.*歴|薬剤.*整理|時系列|何.*投与/i.test(text)) {
+    return {
+      narration: "直近30分の投与薬を整理します:プロポフォール/レミフェンタニル/ロクロニウムは5〜10分前に投与済(以降vitals安定)。<b>セファゾリン1gは1分前から投与中</b>。局所麻酔薬はまだ投与していません。",
+      vitals_delta: {},
+      reveal: ["セファゾリン直近投与"],
+      diagnosis_reached: false,
+      hint: state.revealed.has("紅斑") ? "セファゾリン投与直後の低血圧+紅斑…考えられる病態は?" : null
+    };
+  }
+  // フェニレフリン
+  if (/フェニレフリン|ネオシネジン|phenyleph/i.test(text)) {
+    state.vasopressorGiven = true;
+    setTimeout(() => {
+      applyVitalsDelta({ sbp: -8, spo2: -1 });
+      addMessage("instructor", "(数十秒後)昇圧効果が切れ、SBP は再び低下しています。", "");
+    }, 4000);
+    return {
+      narration: "フェニレフリン 0.1 mg を静注します。SBP は一時的に上昇しますが…",
+      vitals_delta: { sbp: +8, hr: -3 },
+      reveal: [],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // エフェドリン
+  if (/エフェドリン|ephedrine/i.test(text)) {
+    state.vasopressorGiven = true;
+    setTimeout(() => {
+      applyVitalsDelta({ sbp: -7, spo2: -1 });
+      addMessage("instructor", "(数十秒後)昇圧効果が切れ、SBP は再び低下しています。", "");
+    }, 4000);
+    return {
+      narration: "エフェドリン 5 mg を静注します。SBP は一時的に上昇しますが…",
+      vitals_delta: { sbp: +7, hr: +5 },
+      reveal: [],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // アドレナリン(診断前) → 診断を聞き返す
+  if (/アドレナリン|エピネフリン|epinephrine|ボスミン/i.test(text)) {
+    state.adrenalineMentionedPreDx = true;
+    return {
+      narration: "アドレナリン投与を考えているのですね。<b>診断は何だと思いますか?</b>",
+      vitals_delta: {},
+      reveal: [],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // セボフルラン
+  if (/セボフルラン|麻酔.*下|セボ.*下げ|気化器/i.test(text)) {
+    return {
+      narration: "セボフルラン濃度を下げます。<b>SBP に変化なし</b>。麻酔薬深度の問題ではなさそうです。",
+      vitals_delta: {},
+      reveal: ["麻酔深度除外"],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // セファゾリン中止
+  if (/セファゾリン.*中止|抗生剤.*中止|抗生剤.*止|セフ.*止/i.test(text)) {
+    return {
+      narration: "セファゾリンの投与を中止しました。原因薬剤の可能性を考えた判断です。",
+      vitals_delta: {},
+      reveal: ["セファゾリン中止"],
+      diagnosis_reached: false,
+      hint: state.revealed.has("紅斑") ? "皮膚紅斑がある場合、何を疑いますか?" : null
+    };
+  }
+  // 輸液
+  if (/輸液|晶質液|生食|細胞外液|fluid/i.test(text)) {
+    return {
+      narration: "晶質液を急速投与します。しかし<b>確保しているのは22Gラインのみ</b>で、流量が出ません。SBPはほとんど改善しません。",
+      vitals_delta: {},
+      reveal: ["22G不十分"],
+      diagnosis_reached: false,
+      hint: "より太いラインの確保を考えてみては?"
+    };
+  }
+  // 18G/ライン
+  if (/18G|18\s*g|太い.*ライン|追加.*ライン|新たな.*ライン/i.test(text)) {
+    return {
+      narration: "(数十秒)18G の追加ラインを確保しました。これで大量輸液が可能になります。",
+      vitals_delta: {},
+      reveal: ["18G確保"],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // 応援
+  if (/応援|上級医|呼ぶ|コール|スタッフ/i.test(text)) {
+    return {
+      narration: "応援を要請。上級医と追加の外回り看護師が入室しました。並列で対応が可能です。",
+      vitals_delta: {},
+      reveal: ["応援到着"],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // FiO2
+  if (/fio2|酸素|100%|酸素.*上げ/i.test(text)) {
+    return {
+      narration: "FiO₂を100%にします。SpO₂が少し改善しました。",
+      vitals_delta: { spo2: +2 },
+      reveal: [],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // 体温
+  if (/体温|温度|発熱|高熱/i.test(text)) {
+    return {
+      narration: "体温を確認します。<b>36.5℃(正常)</b>。MHや敗血症の可能性は低そうです。",
+      vitals_delta: {},
+      reveal: ["体温正常"],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // 心筋虚血/心臓
+  if (/心筋|虚血|心臓.*悪/i.test(text)) {
+    return {
+      narration: "心筋虚血が原因の可能性ですね。心電図を見ましたか? ST変化など見ておきましょう。",
+      vitals_delta: {},
+      reveal: [],
+      diagnosis_reached: false,
+      hint: null
+    };
+  }
+  // デフォルト
+  return {
+    narration: "(指示内容を解釈できませんでした。もう少し具体的に伝えてみてください。)",
+    vitals_delta: {},
+    reveal: [],
+    diagnosis_reached: false,
+    hint: "血圧低下について原因を考えながら、患者の観察や投薬を試してみましょう。"
+  };
+}
+
+// =====================================================
+// 治療フェーズ(診断後)
+// =====================================================
+function treatmentPhaseResponse(text) {
+  const t = state.treatments;
+
+  // ========= コンテキスト依存の短い返答 =========
+  // 直前にAIが「手術は?」と聞いていて、まだ手術判断していない時の短い返答
+  if (state.surgeryPromptShown && !t.surgeryStopped &&
+      /^(?:中止|延期|止め|やめ|しない|やる|続行|継続|stop)/i.test(text.trim())) {
+    if (/(続行|継続|やる|する)/i.test(text)) {
+      return wrapTreatment({
+        narration: "手術続行は<b>リスクが高い</b>です。アナフィラキシー直後で循環不安定。中止または延期が一般的です。"
+      });
+    }
+    t.surgeryStopped = true;
+    return wrapTreatment({
+      narration: "外科医と協議し、<b>手術は中止</b>することにしました。"
+    });
+  }
+  // 直前にAIが「気道は?」と聞いていて、まだ気道判断していない時の幅広い認識
+  if (state.airwayPromptShown && !t.icu) {
+    // 抜管しようとしたら警告
+    if (/抜管.*(?:する|します|して|しよう|していい|してもいい)/i.test(text)) {
+      return wrapTreatment({
+        narration: "<b>少し待ってください。</b>気道浮腫の可能性があります。抜管は危険です。"
+      });
+    }
+    // 挿管維持・ICU・搬送・抜管せず など幅広く受け止める
+    if (/そのまま|維持|挿管|抜管.*(?:しない|しません|せず|せん|抜かない)|ICU|icu|集中治療|搬送|転棟|転送|気道浮腫|extubat.*not/i.test(text)) {
+      t.icu = true;
+      return wrapTreatment({
+        narration: "正しい判断です。気道浮腫の可能性があるため、<b>抜管せず挿管管理のまま ICU へ搬送</b>します。"
+      });
+    }
+  }
+
+  // ノルアドレナリン(アドレナリン判定より先に処理)
+  if (/ノルアドレナリン|ノルアド|noradrenaline|norepi/i.test(text)) {
+    return wrapTreatment({
+      narration: "ノルアドレナリン持続投与を開始。<b>α1作用主体の昇圧</b>でアドレナリンを補助します。ただしアナフィラキシーの第一選択はアドレナリンです。"
+    });
+  }
+
+  // セファゾリン中止
+  if (/セファゾリン.*(中止|止|停止|やめ)|抗生剤.*(中止|止|停止|やめ)|セフ.*(中止|止)/i.test(text)) {
+    t.stopCefazolin = true;
+    return wrapTreatment({
+      narration: "セファゾリンの投与を停止しました。<b>原因薬剤の除去</b>は重要な一歩です。他には?"
+    });
+  }
+  // アドレナリン関連 — 投与経路と量を段階的に確認
+  const mentionsAdrenaline = /アドレナリン|エピネフリン|epinephrine|ボスミン/i.test(text);
+  const mentionsIM = /筋注|筋肉.*注射|IM\b|im\b|大腿外側/i.test(text);
+  const mentionsIV = /静注|静脈内|静脈投与|静脈.*(から|より|に|内)|経静脈|血管内|血管.*から|IV\b|iv\b|i\.\s*v\.?|ボーラス|bolus/i.test(text);
+  // 用量解析:数値を抽出してから判定(「0.1mg」が「1mg」と誤マッチするバグを回避)
+  const doseMatch = text.match(/(\d+\.?\d*)\s*(?:mg|ミリ)/i);
+  const doseValue = doseMatch ? parseFloat(doseMatch[1]) : null;
+  const mentions1mg = (doseValue !== null && doseValue >= 0.5); // 0.5mg以上は過量警告
+  const mentionsCorrectDose = (doseValue !== null && doseValue >= 0.04 && doseValue <= 0.15)
+                              || /希釈|10\s*倍.*希釈/i.test(text);
+
+  // (A) 前ターンで「アドレナリンを使う」と提案済み → 経路・量の応答待ち
+  if (state.adrenalineProposed && !mentionsAdrenaline) {
+    if (mentionsIM) {
+      return wrapTreatment({
+        narration: "筋注ですね。ただ本症例では <b>すでに静脈ラインが確保されている</b>ので、<b>0.05〜0.1 mg を緩徐に静注</b> の方が立ち上がりが早くベターです。量と経路を確認しましょう。"
+      });
+    }
+    if (mentions1mg && mentionsIV) {
+      return wrapTreatment({
+        narration: "<b>注意:1 mg 静注は心停止用量</b>です。アナフィラキシーで使うと致死的不整脈・脳出血のリスクがあります。<b>0.05〜0.1 mg</b> に減量してください。"
+      });
+    }
+    if (mentionsIV && mentionsCorrectDose) {
+      t.adrenaline = true;
+      state.adrenalineProposed = false;
+      return wrapTreatment({
+        narration: "<b>アドレナリン 0.05〜0.1 mg を緩徐に静注</b>しました。SBP 上昇、SpO₂ 改善、気道狭窄も軽減してきました。アナフィラキシー治療の第一選択であり、最も重要な対応です。",
+        vitals_delta: { sbp: +25, dbp: +15, spo2: +4, hr: +10 }
+      });
+    }
+    if (mentionsIV) {
+      return wrapTreatment({
+        narration: "静注ですね。<b>量はどうしますか?</b>(成人のアナフィラキシーでは 0.05〜0.1 mg)"
+      });
+    }
+    if (mentionsCorrectDose) {
+      t.adrenaline = true;
+      state.adrenalineProposed = false;
+      return wrapTreatment({
+        narration: "<b>アドレナリン 0.05〜0.1 mg を緩徐に静注</b>しました。SBP 上昇、SpO₂ 改善、気道狭窄も軽減してきました。アナフィラキシー治療の第一選択であり、最も重要な対応です。",
+        vitals_delta: { sbp: +25, dbp: +15, spo2: +4, hr: +10 }
+      });
+    }
+  }
+
+  // (B) 同じターンで「アドレナリン + 経路・量」をまとめて指定
+  if (mentionsAdrenaline) {
+    if (mentionsIM) {
+      state.adrenalineProposed = true;
+      return wrapTreatment({
+        narration: "アドレナリンを筋注ですね。ただ本症例では <b>すでに静脈ラインが確保されている</b>ので、<b>0.05〜0.1 mg を緩徐に静注</b> の方が立ち上がりが早くベターです。"
+      });
+    }
+    if (mentions1mg && mentionsIV) {
+      state.adrenalineProposed = true;
+      return wrapTreatment({
+        narration: "<b>注意:1 mg 静注は心停止用量</b>です。アナフィラキシーでは <b>0.05〜0.1 mg を緩徐に静注</b>。"
+      });
+    }
+    if (mentionsIV && mentionsCorrectDose) {
+      t.adrenaline = true;
+      state.adrenalineProposed = false;
+      return wrapTreatment({
+        narration: "<b>アドレナリン 0.05〜0.1 mg を緩徐に静注</b>しました。SBP 上昇、SpO₂ 改善、気道狭窄も軽減してきました。アナフィラキシー治療の第一選択であり、最も重要な対応です。",
+        vitals_delta: { sbp: +25, dbp: +15, spo2: +4, hr: +10 }
+      });
+    }
+    // 経路・量未指定 → 確認
+    state.adrenalineProposed = true;
+    return wrapTreatment({
+      narration: "アドレナリンですね。<b>投与経路と量は?</b>(本症例では静脈ライン確保済み)"
+    });
+  }
+  // Aライン(観血的動脈圧モニタ)— 18Gより先に判定
+  const isAline = (
+    /[AaＡａ]\s*[-‐-—]?\s*(?:ライン|line|ルート)/i.test(text) ||
+    /アライン|エーライン|アートライン|アーライン/i.test(text) ||
+    /動脈\s*(?:圧)?\s*(?:を|の|に|へ)?\s*(?:ライン|挿入|確保|穿刺|留置|取)/i.test(text) ||
+    /観血/i.test(text) ||
+    /橈骨\s*(?:動脈)?\s*(?:を|の|に|へ)?\s*(?:ライン|挿入|確保|穿刺|留置|取)/i.test(text)
+  );
+  if (isAline) {
+    t.aline = true;
+    return wrapTreatment({
+      narration: "<b>Aライン(橈骨動脈)を確保</b>しました。観血的に動脈圧を持続モニタでき、急速な血圧変動を逐拍で追えます。ABG採血も容易になります。<br>並列対応として有効な判断です。"
+    });
+  }
+  // 太い末梢ライン確保(18G または 16G、または一般的な"ライン追加")
+  const isThickLine = (
+    /1[68]\s*G/i.test(text) ||                              // 18G / 16G
+    /太い.*ライン/i.test(text) ||                            // 太いライン
+    /末梢[をへに]?\s*(ライン|確保|取り?|追加|増やし?|入れ|挿入)/i.test(text) ||  // 末梢ライン/末梢確保
+    /ライン.*?(追加|もう一本|もう一つ|新規|新しい|増|入れ|挿入)/i.test(text) ||
+    /(追加|もう一本|もう一つ|新規|新しい)\s*(末梢|ライン)/i.test(text) ||
+    /静脈[路ライン].*?(追加|確保)/i.test(text) ||
+    /ルート.*?(追加|確保|もう一本|新しい)/i.test(text)
+  );
+  if (isThickLine) {
+    t.iv18G = true;
+    // ユーザーの入力に応じてゲージを反映
+    let gauge = "太い末梢";
+    if (/16\s*G/i.test(text)) gauge = "16G";
+    else if (/18\s*G/i.test(text)) gauge = "18G";
+    return wrapTreatment({
+      narration: `(数十秒)<b>${gauge} 末梢ラインの確保 完了</b>。これで大量輸液が可能になります。次は?`
+    });
+  }
+  // 輸液
+  if (/輸液|晶質液|生食|生理食塩水|細胞外液|fluid|大量.*投与|急速.*投与|急速.*輸液|リンゲル|ボルベン|ヘスパンダー|ソルアセト|ラクテック|ハイポネート|ビカネイト|ビカーボン|重炭酸リンゲル/i.test(text)) {
+    if (!t.iv18G) {
+      return wrapTreatment({
+        narration: "輸液を急速投与しようとしましたが、<b>22G ライン 1 本のみ</b>では流量が足りません。先に太いラインを確保しませんか?(<b>18G または 16G</b> が望ましい)"
+      });
+    }
+    t.fluid = true;
+    return wrapTreatment({
+      narration: "晶質液 <b>1〜2 L を太いラインから急速投与</b>中。血管透過性亢進で漏出した血漿を補充します。",
+      vitals_delta: { sbp: +10, spo2: +1 }
+    });
+  }
+  // FiO2 100%
+  if (/fio2|fio₂|酸素.*100|100.*酸素|酸素.*上げ|純酸素/i.test(text)) {
+    t.fio2 = true;
+    return wrapTreatment({
+      narration: "FiO₂ を 100% に変更しました。SpO₂ がさらに改善しています。",
+      vitals_delta: { spo2: +3 }
+    });
+  }
+  // 応援要請
+  if (/応援|上級医|呼ぶ|コール|スタッフ|人.*呼/i.test(text)) {
+    t.help = true;
+    return wrapTreatment({
+      narration: "応援を要請。上級医・追加看護師が入室しました。並列で対応可能です。"
+    });
+  }
+  // 手術中止
+  if (/手術.*(中止|延期|止|やめ)|外科医.*(相談|協議)|執刀.*中止/i.test(text)) {
+    t.surgeryStopped = true;
+    return wrapTreatment({
+      narration: "外科医と協議し、<b>手術は中止</b>することにしました。"
+    });
+  }
+  // 抜管せず/挿管維持/ICU(「せず」「せん」も認識・「し」必須を廃止)
+  if (/抜管.*(?:しない|しません|せず|せん|抜かない|抜きません)|挿管.*(?:維持|管理|継続|したまま|のまま|しとく)|気道浮腫/i.test(text)) {
+    t.icu = true;
+    return wrapTreatment({
+      narration: "正しい判断です。アナフィラキシーでは<b>気道浮腫の可能性がある</b>ため、抜管せず挿管管理のまま ICU へ搬送します。"
+    });
+  }
+  if (/ICU|icu|集中治療室|HCU|集中治療/i.test(text)) {
+    t.icu = true;
+    return wrapTreatment({
+      narration: "ICU 入室を依頼。気道浮腫の可能性があるため、<b>挿管管理のまま搬送</b>します。"
+    });
+  }
+  // 抜管(誤り → やんわり指摘)
+  if (/抜管(?:する|します|して|しよう|していい|してもいい)/i.test(text)) {
+    return wrapTreatment({
+      narration: "<b>少し待ってください。</b>アナフィラキシーでは気道浮腫の可能性があります。抜管は危険かもしれません。どう管理しますか?"
+    });
+  }
+  // トリプターゼ / 後日対応
+  if (/トリプターゼ|皮膚.*テスト|皮内.*テスト|アレルギー.*専門|皮膚プリック/i.test(text)) {
+    t.tryptase = true;
+    return wrapTreatment({
+      narration: "発症 1〜2 時間後にトリプターゼ採血(後方視的診断補助)。退院後はアレルギー専門医による皮膚プリック/皮内テストで原因薬剤を特定します。<b>本人・家族・将来の医療者への情報伝達</b>は致死的な再投与を防ぐために必須。"
+    });
+  }
+  // 気管支拡張薬(β2刺激薬 吸入)
+  if (/気管支拡張|β2|β\s*2|ベータ2|サルブタモール|ベネトリン|プロカテロール|メプチン|アルブテロール|吸入.*薬|ネブライザ/i.test(text)) {
+    t.bronchodilator = true;
+    return wrapTreatment({
+      narration: "<b>サルブタモール吸入(0.3〜0.5 mL を生食希釈)</b>をネブライザーで気管チューブから投与しました。気管支攣縮(喘鳴)の軽減に寄与します。アナフィラキシーではアドレナリンが主軸ですが、<b>並行での吸入治療は有効</b>です。",
+      vitals_delta: { spo2: +1 }
+    });
+  }
+  // ステロイド(オプション)
+  if (/ステロイド|ハイドロコルチゾン|デキサメタゾン|ソルメドロール|プレドニン|メチルプレドニゾロン/i.test(text)) {
+    t.steroid = true;
+    return wrapTreatment({
+      narration: "<b>ステロイド</b>を投与しました(二相性反応の予防目的)。急性期の第一選択ではありませんが、補助治療として有用です。"
+    });
+  }
+  // 抗ヒスタミン / H1・H2 ブロッカー(オプション)
+  if (/抗ヒスタミン|ヒスタミンブロッカー|ヒスタミン.{0,15}(ブロッカー|拮抗|受容体|遮断)|H1.{0,5}(ブロッカー|拮抗|薬|遮断)|H2.{0,5}(ブロッカー|拮抗|薬|遮断)|ジフェンヒドラミン|ポララミン|ファモチジン|ラニチジン|シメチジン/i.test(text)) {
+    t.antihistamine = true;
+    return wrapTreatment({
+      narration: "<b>抗ヒスタミン薬(H1ブロッカー)</b>を投与しました。皮膚症状の改善に寄与します。H2ブロッカー(ファモチジン等)併用もあり。急性期の主軸ではありません。"
+    });
+  }
+  // セボフルラン(気管支拡張作用、オプション)
+  if (/セボフルラン|sevo|揮発性麻酔薬/i.test(text)) {
+    if (/(下げ|減ら|低く|オフ|切|中止|止め)/i.test(text)) {
+      return wrapTreatment({
+        narration: "セボフルラン濃度を下げました。ただし揮発性麻酔薬には<b>気管支拡張作用</b>もあるため、本症例では下げすぎない方が良いかもしれません。"
+      });
+    }
+    t.sevoInhale = true;
+    return wrapTreatment({
+      narration: "<b>セボフルラン吸入</b>を継続/増量しました。揮発性麻酔薬には<b>気管支拡張作用</b>があるため、気管支攣縮の補助治療として有用です。ただし循環抑制があるため血圧と相談しながら。"
+    });
+  }
+  // フェニレフリン(治療フェーズでも認識 — 一時改善後再低下)
+  if (/フェニレフリン|ネオシネジン|phenyleph/i.test(text)) {
+    setTimeout(() => {
+      applyVitalsDelta({ sbp: -8, spo2: -1 });
+      addMessage("instructor", "(数十秒後)昇圧効果が切れ、SBP は再び低下しています。<b>アナフィラキシーには根本治療(アドレナリン)が必要</b>です。", "");
+    }, 4000);
+    return wrapTreatment({
+      narration: "フェニレフリン 0.1 mg を静注。SBP は一時的に上昇しますが…",
+      vitals_delta: { sbp: +8, hr: -3 }
+    });
+  }
+  // エフェドリン(治療フェーズでも認識 — 一時改善後再低下)
+  if (/エフェドリン|ephedrine/i.test(text)) {
+    setTimeout(() => {
+      applyVitalsDelta({ sbp: -7, spo2: -1 });
+      addMessage("instructor", "(数十秒後)昇圧効果が切れ、SBP は再び低下しています。<b>アナフィラキシーには根本治療(アドレナリン)が必要</b>です。", "");
+    }, 4000);
+    return wrapTreatment({
+      narration: "エフェドリン 5 mg を静注。SBP は一時的に上昇しますが…",
+      vitals_delta: { sbp: +7, hr: +5 }
+    });
+  }
+  // 既に診断確認後の「アナフィラキシー」
+  if (/アナフィラキシー|アレルギー反応/i.test(text)) {
+    return wrapTreatment({
+      narration: "診断は既にアナフィラキシー Grade III で確定しています。<b>具体的な治療</b>を伝えてください。"
+    });
+  }
+
+  // default
+  return wrapTreatment({
+    narration: "(うまく解釈できませんでした。別の言い方で伝えてみてください。)"
+  });
+}
+
+function wrapTreatment(resp) {
+  resp.vitals_delta = resp.vitals_delta || {};
+  resp.reveal = [];
+  resp.diagnosis_reached = false;
+  resp.hint = resp.hint || null;
+
+  const t = state.treatments;
+  // 必須: アドレナリン + 太い末梢ライン + 輸液
+  const essentialsDone = t.adrenaline && t.iv18G && t.fluid;
+  // 最終判断: 手術中止 + 抜管せずICU の両方
+  const finalDone = t.surgeryStopped && t.icu;
+  // 完了: 必須 + 最終判断
+  const allDone = essentialsDone && finalDone;
+
+  // 注:自動完了は廃止。学習者は「対応終了」ボタンで明示的に終了させる。
+  // (allDone の判定は finishButtonPressed() 内で行う)
+
+  // 促しフロー(順序が前後しても対応)
+  if (essentialsDone && !t.surgeryStopped && !state.surgeryPromptShown) {
+    // Stage 1: 必須治療がそろったら → 手術について問う
+    resp.followupPrompt = "<b>バイタルは安定してきました。</b>この後はどうしますか? 手術は行いますか?";
+    state.surgeryPromptShown = true;
+  }
+  else if (essentialsDone && t.surgeryStopped && !t.icu && !state.airwayPromptShown) {
+    // Stage 2: 手術中止が決まったら → 気道について問う
+    resp.followupPrompt = "<b>アナフィラキシーでは気道浮腫の可能性</b>があります。抜管はどう判断しますか?";
+    state.airwayPromptShown = true;
+  }
+  else if (essentialsDone && t.icu && !t.surgeryStopped && !state.surgeryAfterIcuPromptShown) {
+    // 逆順:ICUを先に決めた場合 → 手術についても問う
+    resp.followupPrompt = "ICU 搬送の準備は OK ですね。<b>手術はどうしますか?</b>(中止/延期が一般的)";
+    state.surgeryAfterIcuPromptShown = true;
+  }
+
+  return resp;
+}
+
+// =====================================================
+// 音声入力(Web Speech API)
+// =====================================================
+let recognition = null;
+function startVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    addMessage("system", "このブラウザは音声入力に対応していません(Chrome / Edge 推奨)。テキストで入力してください。");
+    return;
+  }
+  if (recognition) { recognition.stop(); return; }
+  recognition = new SR();
+  recognition.lang = "ja-JP";
+  recognition.interimResults = false;
+  recognition.continuous = false;
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    document.getElementById("input").value = text;
+    setTimeout(() => sendMessage(), 200);
+  };
+  recognition.onerror = (e) => {
+    addMessage("system", "音声入力エラー: " + e.error);
+  };
+  recognition.onend = () => {
+    document.getElementById("micBtn").classList.remove("listening");
+    recognition = null;
+  };
+  recognition.start();
+  document.getElementById("micBtn").classList.add("listening");
+}
+
+// =====================================================
+// ヒント
+// =====================================================
+function toggleHint() {
+  document.getElementById("hintPanel").classList.toggle("show");
+}
+
+// =====================================================
+// API key
+// =====================================================
+function saveApiKey() {
+  const k = document.getElementById("apiKey").value.trim();
+  if (!k) {
+    localStorage.removeItem("ANTHROPIC_API_KEY");
+    state.apiKey = "";
+    setApiStatus("未設定 → ルールベースで動作", "");
+  } else if (!k.startsWith("sk-ant-")) {
+    setApiStatus("形式エラー: sk-ant- で始まるキーが必要", "fail");
+    return;
+  } else {
+    localStorage.setItem("ANTHROPIC_API_KEY", k);
+    state.apiKey = k;
+    setApiStatus("✓ Claude (Haiku 4.5) で応答", "ok");
+  }
+}
+
+function setApiStatus(text, cls) {
+  const el = document.getElementById("apiStatus");
+  el.textContent = text;
+  el.className = "api-status " + cls;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+
+// =====================================================
+// 初期化
+// =====================================================
+window.addEventListener("load", () => {
+  if (state.apiKey) {
+    document.getElementById("apiKey").value = state.apiKey;
+    setApiStatus("✓ Claude (Haiku 4.5) で応答", "ok");
+  }
+  // 心拍音 UI 初期化(localStorageから復元)
+  updateSoundUI();
+  if (state.soundEnabled) startPulseLoop();
+  // 波形 canvas を初期化(layout完了を待つため1フレーム遅延)
+  requestAnimationFrame(() => {
+    reinitCanvases();
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    animationFrameId = requestAnimationFrame(waveLoop);
+  });
+  // 開幕メッセージ
+  setTimeout(() => {
+    addMessage("instructor",
+      "血圧が低下しました。<br>" +
+      "<b>対応してください。</b><br>" +
+      "薬剤投与、診察など、考えていることを伝えてください。"
+    );
+    renderVitals();
+    startVitalsTrend();
+    startPromptWatch();
+  }, 400);
+});
+</script>
+</body>
+</html>
