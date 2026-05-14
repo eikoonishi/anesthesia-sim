@@ -1998,9 +1998,8 @@ window.addEventListener("load", () => {
     if (lbl) lbl.textContent = Math.round(state.soundVolume * 100) + "%";
   }
   const autoStart = async () => {
-    if (!state.soundEnabled) return;
     await unlockAudio();
-    if (!pulseTimeoutId) {
+    if (state.soundEnabled && !pulseTimeoutId) {
       playPulseBeep();
       startPulseLoop();
     }
