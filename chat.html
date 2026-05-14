@@ -407,6 +407,8 @@
       <div class="iphone-note">
         📱 <b>iPhone / iPad</b>:本体側面のサイレントスイッチ(マナーモード)を解除し、音量ボタンで音量を上げてください。
       </div>
+      <button class="sound-toggle-btn" onclick="testBeep()" style="margin-top:8px;">♪ テスト音(1回)</button>
+      <div id="audioDbg" style="margin-top:6px; font-size:11px; color:#88a;">AudioCtx: 未起動</div>
       <div style="margin-top:14px; font-size:12px; color:#aebcd0; line-height:1.6;">
         <b>Anthropic API Key(任意)</b>:設定すると Claude が文脈的に応答します。
         未設定なら内蔵ルールベースで動作。キーはブラウザ内のみ保存(外部送信なし)。
@@ -663,7 +665,7 @@ function playPulseBeep() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.type = "sine";
+    osc.type = "triangle";
     osc.frequency.value = freq;
     const peak = state.soundVolume;
     const now = audioCtx.currentTime;
@@ -693,10 +695,12 @@ function stopPulseLoop() {
   if (pulseTimeoutId) { clearTimeout(pulseTimeoutId); pulseTimeoutId = null; }
 }
 
-function unlockAudio() {
+async function unlockAudio() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
+    if (audioCtx.state === "suspended") {
+      await audioCtx.resume();
+    }
     if (!audioUnlocked) {
       const buf = audioCtx.createBuffer(1, 1, 22050);
       const src = audioCtx.createBufferSource();
@@ -708,16 +712,40 @@ function unlockAudio() {
   } catch (e) { console.warn("Audio unlock failed:", e); }
 }
 
-function toggleSound() {
+async function toggleSound() {
   state.soundEnabled = !state.soundEnabled;
   try { localStorage.setItem(SOUND_LS_KEY, state.soundEnabled ? "1" : "0"); } catch (e) {}
   if (state.soundEnabled) {
-    unlockAudio();
+    await unlockAudio();
+    playPulseBeep();
     startPulseLoop();
   } else {
     stopPulseLoop();
   }
   updateSoundUI();
+  const dbg = document.getElementById("audioDbg");
+  if (dbg) dbg.textContent = "AudioCtx: " + (audioCtx ? audioCtx.state : "null") + " / unlocked: " + audioUnlocked;
+}
+
+async function testBeep() {
+  await unlockAudio();
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = "triangle";
+    osc.frequency.value = 880;
+    const peak = Math.max(0.4, state.soundVolume);
+    const now = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(peak, now + 0.01);
+    gain.gain.setValueAtTime(peak, now + 0.25);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.40);
+    osc.start(now);
+    osc.stop(now + 0.42);
+  } catch (e) { console.warn("Test beep error:", e); }
+  const dbg = document.getElementById("audioDbg");
+  if (dbg) dbg.textContent = "AudioCtx: " + (audioCtx ? audioCtx.state : "null") + " / unlocked: " + audioUnlocked + " / SR: " + (audioCtx ? audioCtx.sampleRate : "-");
 }
 
 function setSoundVolume(v) {
