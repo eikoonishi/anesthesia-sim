@@ -319,6 +319,68 @@
     color: #aebcd0;
     margin-bottom: 8px;
   }
+  .start-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10, 25, 41, 0.97);
+    z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; overflow-y: auto;
+  }
+  .start-card {
+    background: #1a2332;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 560px;
+    width: 100%;
+    color: #cfe5ff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .start-title {
+    font-size: 20px; font-weight: 800; text-align: center;
+    margin-bottom: 14px; color: #fff;
+  }
+  .start-scenario {
+    background: rgba(74,144,226,0.12);
+    border-left: 3px solid #4a90e2;
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: 14px; line-height: 1.6;
+  }
+  .start-section { margin-bottom: 12px; }
+  .start-section-title {
+    font-size: 14px; font-weight: 700;
+    color: #7fffa8; margin-bottom: 4px;
+  }
+  .start-section-body {
+    font-size: 13px; line-height: 1.65;
+    color: #aebcd0; padding-left: 6px;
+  }
+  .start-warn {
+    color: #ffe082;
+    background: rgba(255,193,7,0.1);
+    border-left: 3px solid #ffc107;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  .start-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    background: linear-gradient(135deg, #4a90e2, #2c5fa3);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(74,144,226,0.4);
+  }
+  .start-btn:hover { filter: brightness(1.15); }
+  .start-btn:active { transform: scale(0.98); }
   .api-key-row {
     display: flex; gap: 6px;
   }
@@ -370,6 +432,42 @@
 </style>
 </head>
 <body>
+
+<div id="startOverlay" class="start-overlay">
+  <div class="start-card">
+    <div class="start-title">🚨 急変対応シミュレーション</div>
+    <div class="start-scenario">
+      <b>シナリオ</b>:45歳女性・腹腔鏡下胆嚢摘出術<br>
+      全静脈麻酔導入後、セファゾリン投与中に急変。
+    </div>
+    <div class="start-section">
+      <div class="start-section-title">📝 入力方法</div>
+      <div class="start-section-body">
+        💬 <b>テキスト入力</b>:画面下の入力欄に指示(例:「皮膚を確認」「アドレナリン投与」)<br>
+        🎤 <b>音声入力</b>:マイクボタンで発話可(Chrome系ブラウザ推奨)
+      </div>
+    </div>
+    <div class="start-section">
+      <div class="start-section-title">⚠️ 音声入力の注意</div>
+      <div class="start-section-body">
+        ・薬剤名(プロポフォール、アドレナリン等)はできるだけ正確に発話<br>
+        ・認識されない/誤認識の場合はテキスト入力に切替<br>
+        ・周囲の雑音で正しく認識されないことがあります
+      </div>
+    </div>
+    <div class="start-section">
+      <div class="start-section-title">🔊 モニター音</div>
+      <div class="start-section-body">
+        開始すると心拍音が鳴ります(SpO₂連動ピッチ)。音量は画面上部の設定で調整可。
+        <div class="start-warn">
+          📱 iPhone/iPadは <b>マナーモード解除</b>＋<b>メディア音量UP</b> を確認してください。
+        </div>
+      </div>
+    </div>
+    <button id="startBtn" class="start-btn" onclick="startSimulation()">▶ シミュレーション開始</button>
+  </div>
+</div>
+
 <div class="app">
 
   <div class="monitor">
@@ -718,6 +816,24 @@ function startPulseLoop(initialDelay) {
   } else {
     tick();
   }
+}
+
+async function startSimulation() {
+  const btn = document.getElementById("startBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "起動中..."; }
+  await unlockAudio();
+  if (state.soundEnabled) {
+    await playPrimingBeep();
+    startPulseLoop(400);
+  }
+  const overlay = document.getElementById("startOverlay");
+  if (overlay) {
+    overlay.style.transition = "opacity 0.3s";
+    overlay.style.opacity = "0";
+    setTimeout(() => { overlay.style.display = "none"; }, 320);
+  }
+  const dbg = document.getElementById("audioDbg");
+  if (dbg) dbg.textContent = "start: " + (audioCtx ? audioCtx.state : "null") + " / unlocked: " + audioUnlocked;
 }
 
 async function playPrimingBeep() {
@@ -2022,17 +2138,7 @@ window.addEventListener("load", () => {
     const lbl = document.getElementById("soundVolumeLabel");
     if (lbl) lbl.textContent = Math.round(state.soundVolume * 100) + "%";
   }
-  const autoStart = async () => {
-    await unlockAudio();
-    if (state.soundEnabled && !pulseTimeoutId) {
-      await playPrimingBeep();
-      startPulseLoop(400);
-    }
-    const dbg = document.getElementById("audioDbg");
-    if (dbg) dbg.textContent = "auto: " + (audioCtx ? audioCtx.state : "null") + " / unlocked: " + audioUnlocked;
-  };
-  document.addEventListener("click", autoStart, { once: true });
-  document.addEventListener("touchstart", autoStart, { once: true });
+  // 音声の起動は #startOverlay の「シミュレーション開始」ボタン(startSimulation)で行う
   // 画面復帰時にAudioContextが suspended なら再開
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && state.soundEnabled && audioCtx && audioCtx.state === "suspended") {
