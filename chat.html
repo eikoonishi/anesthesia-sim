@@ -676,11 +676,14 @@ function mapSpo2ToFreq(spo2) {
   return 880 * Math.pow(2, (clamped - 100) / 20);
 }
 
-function playPulseBeep() {
+async function playPulseBeep() {
   if (!state.soundEnabled) return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
+    if (audioCtx.state === "suspended") {
+      try { await audioCtx.resume(); } catch (e) {}
+    }
+    if (audioCtx.state !== "running") return;
     const freq = mapSpo2ToFreq(state.vitals.spo2);
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
