@@ -399,8 +399,13 @@
     </div>
     <div class="api-setup-body">
       <button class="sound-toggle-btn" id="soundToggle" onclick="toggleSound()" style="margin-top:0;">🔇 心拍音 OFF</button>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:8px; color:#aebcd0; font-size:12px;">
+        <span style="min-width:36px;">音量</span>
+        <input type="range" id="soundVolume" min="0.05" max="1.0" step="0.05" value="0.35" oninput="setSoundVolume(this.value)" style="flex:1;">
+        <span id="soundVolumeLabel" style="min-width:40px; text-align:right; color:#cfe5ff;">35%</span>
+      </div>
       <div class="iphone-note">
-        📱 <b>iPhone</b>:本体側面のサイレントモード(マナーモード)を解除してください。
+        📱 <b>iPhone / iPad</b>:本体側面のサイレントスイッチ(マナーモード)を解除し、音量ボタンで音量を上げてください。
       </div>
       <div style="margin-top:14px; font-size:12px; color:#aebcd0; line-height:1.6;">
         <b>Anthropic API Key(任意)</b>:設定すると Claude が文脈的に応答します。
@@ -632,9 +637,15 @@ function setVitals(updates) {
 // 心拍音(SpO₂連動ピッチ、Web Audio API)
 // =====================================================
 const SOUND_LS_KEY = "chat_sim_sound_v1";
+const SOUND_VOLUME_LS_KEY = "chat_sim_sound_volume_v1";
 let audioCtx = null;
+let audioUnlocked = false;
 let pulseTimeoutId = null;
 state.soundEnabled = (localStorage.getItem(SOUND_LS_KEY) === "1");
+state.soundVolume = (() => {
+  const v = parseFloat(localStorage.getItem(SOUND_VOLUME_LS_KEY));
+  return (isFinite(v) && v > 0 && v <= 1) ? v : 0.35;
+})();
 
 function mapSpo2ToFreq(spo2) {
   if (typeof spo2 !== "number") return 880;
@@ -654,10 +665,11 @@ function playPulseBeep() {
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.type = "sine";
     osc.frequency.value = freq;
+    const peak = state.soundVolume;
     const now = audioCtx.currentTime;
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
-    gain.gain.setValueAtTime(0.05, now + 0.04);
+    gain.gain.linearRampToValueAtTime(peak, now + 0.005);
+    gain.gain.setValueAtTime(peak, now + 0.04);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
     osc.start(now);
     osc.stop(now + 0.12);
@@ -681,12 +693,26 @@ function stopPulseLoop() {
   if (pulseTimeoutId) { clearTimeout(pulseTimeoutId); pulseTimeoutId = null; }
 }
 
+function unlockAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    if (!audioUnlocked) {
+      const buf = audioCtx.createBuffer(1, 1, 22050);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+      audioUnlocked = true;
+    }
+  } catch (e) { console.warn("Audio unlock failed:", e); }
+}
+
 function toggleSound() {
   state.soundEnabled = !state.soundEnabled;
   try { localStorage.setItem(SOUND_LS_KEY, state.soundEnabled ? "1" : "0"); } catch (e) {}
   if (state.soundEnabled) {
-    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    unlockAudio();
     startPulseLoop();
   } else {
     stopPulseLoop();
@@ -694,10 +720,20 @@ function toggleSound() {
   updateSoundUI();
 }
 
+function setSoundVolume(v) {
+  const val = Math.max(0.05, Math.min(1.0, parseFloat(v) || 0.35));
+  state.soundVolume = val;
+  try { localStorage.setItem(SOUND_VOLUME_LS_KEY, String(val)); } catch (e) {}
+  const label = document.getElementById("soundVolumeLabel");
+  if (label) label.textContent = Math.round(val * 100) + "%";
+}
+
 function updateSoundUI() {
   const btn = document.getElementById("soundToggle");
   if (btn) {
-    btn.textContent = state.soundEnabled ? "🔊 心拍音 ON" : "🔇 心拍音 OFF";
+    btn.innerHTML = state.soundEnabled
+      ? '🔊 心拍音:<b style="color:#7fffa8;">ON</b> <span style="opacity:.7;">→ タップでOFF</span>'
+      : '🔇 心拍音:<b style="color:#ff8a8a;">OFF</b> <span style="opacity:.7;">→ タップでON</span>';
     btn.classList.toggle("active", state.soundEnabled);
   }
 }
@@ -1876,6 +1912,12 @@ window.addEventListener("load", () => {
   //    localStorage の状態は無視し、毎回 OFF からスタート。ユーザーが詳細設定を開いてトグル必要。
   state.soundEnabled = false;
   updateSoundUI();
+  const volSlider = document.getElementById("soundVolume");
+  if (volSlider) {
+    volSlider.value = state.soundVolume;
+    const lbl = document.getElementById("soundVolumeLabel");
+    if (lbl) lbl.textContent = Math.round(state.soundVolume * 100) + "%";
+  }
   // 波形 canvas を初期化(layout完了を待つため1フレーム遅延)
   requestAnimationFrame(() => {
     reinitCanvases();
