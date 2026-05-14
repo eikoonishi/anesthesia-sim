@@ -416,7 +416,10 @@
     <div class="iphone-note">
       📱 <b>iPhone / iPad</b>:本体側面のサイレントスイッチ(マナーモード)を解除し、音量ボタンで音量を上げてください。
     </div>
-    <button class="sound-toggle-btn" onclick="testBeep()" style="margin-top:8px;">♪ テスト音(1回)</button>
+    <div style="display:flex; gap:6px; margin-top:8px;">
+      <button class="sound-toggle-btn" onclick="testBeep()" style="flex:1; margin-top:0;">♪ WebAudio テスト</button>
+      <button class="sound-toggle-btn" onclick="testHtmlAudioBeep()" style="flex:1; margin-top:0;">♪ HTMLAudio テスト</button>
+    </div>
     <div id="audioDbg" style="margin-top:6px; font-size:11px; color:#88a;">AudioCtx: 未起動</div>
   </div>
 
@@ -685,13 +688,13 @@ function playPulseBeep() {
     osc.type = "triangle";
     osc.frequency.value = freq;
     const peak = state.soundVolume;
-    const now = audioCtx.currentTime;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(peak, now + 0.005);
-    gain.gain.setValueAtTime(peak, now + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
-    osc.start(now);
-    osc.stop(now + 0.12);
+    const startAt = audioCtx.currentTime + 0.005;
+    gain.gain.setValueAtTime(0, startAt);
+    gain.gain.linearRampToValueAtTime(peak, startAt + 0.005);
+    gain.gain.setValueAtTime(peak, startAt + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.10);
+    osc.start(startAt);
+    osc.stop(startAt + 0.12);
   } catch (e) { console.warn("Pulse tone error:", e); }
 }
 
@@ -753,16 +756,31 @@ async function testBeep() {
     osc.type = "triangle";
     osc.frequency.value = 880;
     const peak = Math.max(0.4, state.soundVolume);
-    const now = audioCtx.currentTime;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(peak, now + 0.01);
-    gain.gain.setValueAtTime(peak, now + 0.25);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.40);
-    osc.start(now);
-    osc.stop(now + 0.42);
+    const startAt = audioCtx.currentTime + 0.01;
+    gain.gain.setValueAtTime(0, startAt);
+    gain.gain.linearRampToValueAtTime(peak, startAt + 0.01);
+    gain.gain.setValueAtTime(peak, startAt + 0.25);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.40);
+    osc.start(startAt);
+    osc.stop(startAt + 0.42);
   } catch (e) { console.warn("Test beep error:", e); }
   const dbg = document.getElementById("audioDbg");
-  if (dbg) dbg.textContent = "AudioCtx: " + (audioCtx ? audioCtx.state : "null") + " / unlocked: " + audioUnlocked + " / SR: " + (audioCtx ? audioCtx.sampleRate : "-");
+  if (dbg) dbg.textContent = "WebAudio: " + (audioCtx ? audioCtx.state : "null") + " / unlocked: " + audioUnlocked + " / SR: " + (audioCtx ? audioCtx.sampleRate : "-");
+}
+
+const HTML_BEEP_DATA_URI = "data:audio/wav;base64,UklGRiQGAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAGAAD//w8AHQAqADYAQABIAE4AUgBUAFQAUgBOAEgAQAA2ACoAHQAPAAEA8//k/9j/zP/B/7f/r/+o/6L/n/+e/57/oP+k/6n/sP+5/8L/zf/Z/+X/8v8AAA4AHAAqADcARQBSAF4AaQB0AH0AhQCMAJEAlQCXAJgAlwCVAJEAjACGAH4AdgBsAGIAVgBKAD0AMAAjABQABgD3/+j/2v/L/73/r/+i/5X/iv9//3X/bP9k/13/V/9S/0//Tf9M/03/T/9S/1f/Xf9k/2z/df9//4r/lv+i/6//vf/L/9r/6P/3/wYAFQAjADAAPQBKAFYAYgBsAHYAfgCGAIwAkQCVAJcAmACXAJUAkQCMAIUAfQB0AGkAXgBSAEUANwAqABwADgABAPL/5f/Z/83/wv+5/7D/qf+k/6D/nv+e/5//ov+o/6//t//B/8z/2P/k//L/AAAPABwAKgA2AEAASABOAFIAVABUAFIATgBIAEAANgAqAB0ADwABAPP/5P/Y/8z/wf+3/6//qP+i/5//nv+e/6D/pP+p/7D/uf/C/83/2f/l//L/AAAOABwAKgA3AEUAUgBeAGkAdAB9AIUAjACRAJUAlwCYAJcAlQCRAIwAhgB+AHYAbABiAFYASgA9ADAAIwAUAAYA9//o/9r/y/+9/6//ov+V/4r/f/91/2z/ZP9d/1f/Uv9P/03/TP9N/0//Uv9X/13/ZP9s/3X/f/+K/5b/ov+v/73/y//a/+j/9/8GABUAIwAwAD0ASgBWAGIAbAB2AH4AhgCMAJEAlQCXAJgAlwCVAJEAjACFAH0AdABpAF4AUgBFADcAKgAcAA4AAQDy/+X/2f/N/8L/uf+w/6n/pP+g/57/nv+f/6L/qP+v/7f/wf/M/9j/5P/y/wAADwAcACoANgBAAEgATgBSAFQAVABSAE4ASABAADYAKgAdAA8AAQDz/+T/2P/M/8H/t/+v/6j/ov+f/57/nv+g/6T/qf+w/7n/wv/N/9n/5f/y/wAADgAcACoANwBFAFIAXgBpAHQAfQCFAIwAkQCVAJcAmACXAJUAkQCMAIYAfgB2AGwAYgBWAEoAPQAwACMAFAAGAPf/6P/a/8v/vf+v/6L/lf+K/3//df9s/2T/Xf9X/1L/T/9N/0z/Tf9P/1L/V/9d/2T/bP91/3//iv+W/6L/r/+9/8v/2v/o//f/BgAVACMAMAA9AEoAVgBiAGwAdgB+AIYAjACRAJUAlwCYAJcAlQCRAIwAhQB9AHQAaQBeAFIARQA3ACoAHAAOAAEA8v/l/9n/zf/C/7n/sP+p/6T/oP+e/57/n/+i/6j/r/+3/8H/zP/Y/+T/8v8AAA8AHAAqADYAQABIAE4AUgBUAFQAUgBOAEgAQAA2ACoAHQAPAAEA8//k/9j/zP/B/7f/r/+o/6L/n/+e/57/oP+k/6n/sP+5/8L/zf/Z/+X/8v8AAA4AHAAqADcARQBSAF4AaQB0AH0AhQCMAJEAlQCXAJgAlwCVAJEAjACGAH4AdgBsAGIAVgBKAD0AMAAjABQABgD3/+j/2v/L/73/r/+i/5X/iv9//3X/bP9k/13/V/9S/0//Tf9M/03/T/9S/1f/Xf9k/2z/df9//4r/lv+i/6//vf/L/9r/6P/3/w==";
+
+async function testHtmlAudioBeep() {
+  try {
+    const audio = new Audio(HTML_BEEP_DATA_URI);
+    audio.volume = Math.max(0.5, state.soundVolume);
+    await audio.play();
+    const dbg = document.getElementById("audioDbg");
+    if (dbg) dbg.textContent = "HTMLAudio: 再生開始 (vol=" + audio.volume.toFixed(2) + ")";
+  } catch (e) {
+    const dbg = document.getElementById("audioDbg");
+    if (dbg) dbg.textContent = "HTMLAudio error: " + e.message;
+  }
 }
 
 function setSoundVolume(v) {
