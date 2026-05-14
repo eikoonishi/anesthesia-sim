@@ -683,7 +683,6 @@ async function playPulseBeep() {
     if (audioCtx.state === "suspended") {
       try { await audioCtx.resume(); } catch (e) {}
     }
-    if (audioCtx.state !== "running") return;
     const freq = mapSpo2ToFreq(state.vitals.spo2);
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -1999,8 +1998,10 @@ window.addEventListener("load", () => {
   }
   const autoStart = async () => {
     await unlockAudio();
+    // iOS: resume直後はstateが遅れるため少し待ってから音を出す
+    await new Promise(r => setTimeout(r, 80));
     if (state.soundEnabled && !pulseTimeoutId) {
-      playPulseBeep();
+      await playPulseBeep();
       startPulseLoop();
     }
     const dbg = document.getElementById("audioDbg");
