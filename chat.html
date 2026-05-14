@@ -700,7 +700,7 @@ async function playPulseBeep() {
   } catch (e) { console.warn("Pulse tone error:", e); }
 }
 
-function startPulseLoop() {
+function startPulseLoop(initialDelay) {
   stopPulseLoop();
   if (!state.soundEnabled) return;
   async function tick() {
@@ -713,7 +713,33 @@ function startPulseLoop() {
     const interval = (typeof hr === "number" && hr > 30) ? 60000 / hr : 1000;
     pulseTimeoutId = setTimeout(tick, interval);
   }
-  tick();
+  if (initialDelay && initialDelay > 0) {
+    pulseTimeoutId = setTimeout(tick, initialDelay);
+  } else {
+    tick();
+  }
+}
+
+async function playPrimingBeep() {
+  try {
+    if (!audioCtx) return;
+    if (audioCtx.state === "suspended") {
+      try { await audioCtx.resume(); } catch (e) {}
+    }
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = "triangle";
+    osc.frequency.value = mapSpo2ToFreq(state.vitals.spo2 || 100);
+    const peak = Math.max(0.4, state.soundVolume);
+    const startAt = audioCtx.currentTime + 0.01;
+    gain.gain.setValueAtTime(0, startAt);
+    gain.gain.linearRampToValueAtTime(peak, startAt + 0.01);
+    gain.gain.setValueAtTime(peak, startAt + 0.20);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.30);
+    osc.start(startAt);
+    osc.stop(startAt + 0.32);
+  } catch (e) { console.warn("Priming beep error:", e); }
 }
 
 function stopPulseLoop() {
@@ -754,8 +780,8 @@ async function toggleSound() {
   try { localStorage.setItem(SOUND_LS_KEY, state.soundEnabled ? "1" : "0"); } catch (e) {}
   if (state.soundEnabled) {
     await unlockAudio();
-    playPulseBeep();
-    startPulseLoop();
+    await playPrimingBeep();
+    startPulseLoop(400);
   } else {
     stopPulseLoop();
   }
@@ -1998,14 +2024,12 @@ window.addEventListener("load", () => {
   }
   const autoStart = async () => {
     await unlockAudio();
-    // iOS: resume直後はstateが遅れるため少し待ってから音を出す
-    await new Promise(r => setTimeout(r, 80));
     if (state.soundEnabled && !pulseTimeoutId) {
-      await playPulseBeep();
-      startPulseLoop();
+      await playPrimingBeep();
+      startPulseLoop(400);
     }
     const dbg = document.getElementById("audioDbg");
-    if (dbg) dbg.textContent = "AudioCtx: " + (audioCtx ? audioCtx.state : "null") + " / unlocked: " + audioUnlocked;
+    if (dbg) dbg.textContent = "auto: " + (audioCtx ? audioCtx.state : "null") + " / unlocked: " + audioUnlocked;
   };
   document.addEventListener("click", autoStart, { once: true });
   document.addEventListener("touchstart", autoStart, { once: true });
