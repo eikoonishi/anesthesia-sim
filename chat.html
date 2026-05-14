@@ -701,8 +701,11 @@ function playPulseBeep() {
 function startPulseLoop() {
   stopPulseLoop();
   if (!state.soundEnabled) return;
-  function tick() {
+  async function tick() {
     if (!state.soundEnabled) { pulseTimeoutId = null; return; }
+    if (audioCtx && audioCtx.state === "suspended") {
+      try { await audioCtx.resume(); } catch (e) {}
+    }
     const hr = state.vitals.hr;
     if (typeof hr === "number" && hr > 0) playPulseBeep();
     const interval = (typeof hr === "number" && hr > 30) ? 60000 / hr : 1000;
@@ -715,6 +718,7 @@ function stopPulseLoop() {
   if (pulseTimeoutId) { clearTimeout(pulseTimeoutId); pulseTimeoutId = null; }
 }
 
+let keepAliveStarted = false;
 async function unlockAudio() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -728,6 +732,17 @@ async function unlockAudio() {
       src.connect(audioCtx.destination);
       src.start(0);
       audioUnlocked = true;
+    }
+    // Keep-alive: iOS が AudioContext を suspend するのを防ぐため、極小音量の持続音を流す
+    if (!keepAliveStarted) {
+      const kaOsc = audioCtx.createOscillator();
+      const kaGain = audioCtx.createGain();
+      kaOsc.connect(kaGain);
+      kaGain.connect(audioCtx.destination);
+      kaOsc.frequency.value = 1;
+      kaGain.gain.value = 0.00001;
+      kaOsc.start();
+      keepAliveStarted = true;
     }
   } catch (e) { console.warn("Audio unlock failed:", e); }
 }
@@ -1991,6 +2006,12 @@ window.addEventListener("load", () => {
   };
   document.addEventListener("click", autoStart, { once: true });
   document.addEventListener("touchstart", autoStart, { once: true });
+  // 画面復帰時にAudioContextが suspended なら再開
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && state.soundEnabled && audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+  });
   // 波形 canvas を初期化(layout完了を待つため1フレーム遅延)
   requestAnimationFrame(() => {
     reinitCanvases();
