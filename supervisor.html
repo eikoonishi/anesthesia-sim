@@ -68,9 +68,7 @@
     font-family: "Helvetica Neue", Arial, sans-serif;
     color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     position: relative;
-    transition: box-shadow 0.3s;
   }
-  .monitor.highlight { box-shadow: 0 0 0 4px #ffd93d, 0 4px 20px rgba(255,217,61,0.5); }
   .label-cell {
     display: flex; flex-direction: column;
     justify-content: center; padding: 2px 0;
@@ -89,6 +87,8 @@
   .value.low { color: #ff4d4d; animation: pulseLow 1s infinite; }
   .value.warn { color: #ffd93d; }
   .value.hot { color: #ff4500; animation: pulseLow 0.7s infinite; }
+  .value.measuring { color: #ffd93d; font-size: 14px; animation: pulseLow 0.6s infinite; }
+  .value.na { color: #888; font-size: 18px; }
   @keyframes pulseLow { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
   .v-hr    { color: #00ff66; }
   .v-bp    { color: #ff7ab8; }
@@ -112,10 +112,7 @@
   .stage-card.tutorial { border-left: 4px solid #ffd93d; background: linear-gradient(to right, #fff9e0 0%, white 100%); }
   .stage-card.dialogue { border-left: 4px solid #6bcf99; background: linear-gradient(to right, #e8f8ef 0%, white 100%); }
   .stage-card.dialogue.you { border-left-color: #2a6bb8; background: linear-gradient(to right, #eef5ff 0%, white 100%); }
-  .stage-title {
-    font-size: 14px; font-weight: 700; margin-bottom: 6px;
-    color: #1a4d8f;
-  }
+  .stage-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: #1a4d8f; }
   .stage-title.tutorial { color: #b8860b; }
   .stage-title.dialogue { color: #1e8449; }
   .stage-title.dialogue.you { color: #1a4d8f; }
@@ -126,11 +123,17 @@
     color: white; border: none;
     padding: 12px 24px; border-radius: 10px;
     font-size: 15px; font-weight: 700;
-    cursor: pointer;
-    margin-top: 12px; font-family: inherit;
+    cursor: pointer; margin-top: 12px; font-family: inherit;
     width: 100%;
   }
   .next-btn:hover { background: linear-gradient(135deg, #143c72, #1e5497); }
+  .next-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ECG waveform tutorial SVG */
+  .ecg-tutorial-svg {
+    width: 100%; max-width: 320px; margin: 12px auto; display: block;
+    background: #000; border-radius: 8px; padding: 10px;
+  }
 
   /* Question */
   .question-prompt {
@@ -140,10 +143,7 @@
     font-size: 16px; font-weight: 700;
     box-shadow: 0 4px 12px rgba(245,166,35,0.3);
   }
-  .choices {
-    display: flex; flex-direction: column; gap: 8px;
-    margin-bottom: 10px;
-  }
+  .choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
   .choice-btn {
     background: white; border: 3px solid #d0dbe8;
     border-radius: 12px; padding: 14px 16px;
@@ -187,76 +187,74 @@
     background: rgba(192,57,43,0.55);
     display: flex; align-items: center; justify-content: center;
     z-index: 100; color: white;
-    font-size: 32px; font-weight: 700;
+    font-size: 26px; font-weight: 700;
     animation: alertPulse 0.6s;
+    padding: 20px;
   }
   @keyframes alertPulse {
     0%,100% { background: rgba(192,57,43,0.55); }
     50% { background: rgba(192,57,43,0.85); }
   }
   .alert-content {
-    background: #c0392b; padding: 30px 40px;
+    background: #c0392b; padding: 26px 32px;
     border-radius: 16px; text-align: center;
     box-shadow: 0 8px 40px rgba(0,0,0,0.4);
     animation: shake 0.5s 3;
+    max-width: 90%;
   }
 
-  /* Transition */
   .transition-overlay {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.85);
     display: flex; align-items: center; justify-content: center;
     z-index: 200; color: white;
-    font-size: 30px; font-weight: 700;
+    font-size: 26px; font-weight: 700;
     animation: fadeIn 0.4s;
+    padding: 20px; text-align: center;
   }
 
   /* Opening */
   .opening {
     background: white; border-radius: 14px;
-    padding: 28px; text-align: center;
+    padding: 24px; text-align: center;
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   }
-  .opening h1 { font-size: 26px; color: #1a4d8f; margin-bottom: 14px; }
+  .opening h1 { font-size: 24px; color: #1a4d8f; margin-bottom: 14px; }
   .opening .lead { font-size: 15px; line-height: 1.8; color: #345; margin-bottom: 18px; }
   .opening .role-card {
     background: #eef5ff; border-radius: 10px;
-    padding: 14px; margin: 12px 0;
-    text-align: left;
+    padding: 14px; margin: 12px 0; text-align: left;
   }
   .opening .role-card h3 { color: #1a4d8f; font-size: 14px; margin-bottom: 5px; }
   .opening .role-card p { font-size: 13px; color: #345; }
   .start-btn {
     background: linear-gradient(135deg, #e74c3c, #c0392b);
     color: white; border: none;
-    padding: 16px 36px; border-radius: 12px;
+    padding: 16px 32px; border-radius: 12px;
     font-size: 17px; font-weight: 700;
-    cursor: pointer; margin-top: 12px;
-    font-family: inherit;
+    cursor: pointer; margin-top: 12px; font-family: inherit;
     box-shadow: 0 4px 12px rgba(231,76,60,0.3);
   }
-  .start-btn:hover { transform: translateY(-2px); }
 
-  /* Sound toggle */
+  /* Sound toggle — 動作を明示("○○にする") */
   .sound-toggle {
     position: fixed; top: 10px; right: 10px;
     background: rgba(255,255,255,0.95);
     border: 2px solid #1a4d8f; border-radius: 20px;
-    padding: 6px 12px; font-size: 12px; font-weight: 600;
+    padding: 8px 14px; font-size: 12px; font-weight: 700;
     color: #1a4d8f; cursor: pointer; z-index: 100;
     font-family: inherit;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
   .sound-toggle.on { background: #1a4d8f; color: white; }
 
   /* Serious ending */
   .serious-container {
-    text-align: center; padding: 60px 20px;
-    min-height: 100vh;
+    text-align: center; padding: 60px 20px; min-height: 100vh;
     display: flex; flex-direction: column;
     justify-content: center; align-items: center;
     color: #e0e6ef;
-    opacity: 0;
-    animation: seriousIn 3s forwards;
+    opacity: 0; animation: seriousIn 3s forwards;
   }
   @keyframes seriousIn { to { opacity: 1; } }
   .serious-line {
@@ -268,8 +266,8 @@
   @keyframes serLine { to { opacity: 1; } }
   .patient-story {
     background: rgba(255,255,255,0.05); border-radius: 8px;
-    padding: 10px 16px; margin: 8px auto;
-    max-width: 550px; text-align: left; font-size: 14px;
+    padding: 10px 16px; margin: 8px auto; max-width: 550px;
+    text-align: left; font-size: 14px;
     opacity: 0; animation: serLine 0.8s forwards;
   }
   .patient-story .avatar { font-size: 22px; margin-right: 8px; }
@@ -278,18 +276,65 @@
     border: 2px solid rgba(255,255,255,0.4);
     color: white; padding: 12px 28px;
     border-radius: 10px; font-size: 15px;
-    cursor: pointer; margin-top: 30px;
-    font-family: inherit;
+    cursor: pointer; margin-top: 30px; font-family: inherit;
+  }
+
+  /* === スマホ対応 === */
+  @media (max-width: 600px) {
+    .app { padding: 8px; padding-bottom: 30px; }
+    .header { padding: 8px 12px; gap: 8px; }
+    .header-title h1 { font-size: 13px; }
+    .header-title .sub { font-size: 10px; }
+    .header-clock { font-size: 11px; padding: 4px 8px; }
+    .roommap { gap: 4px; }
+    .room-cell { padding: 6px 2px; font-size: 10px; }
+    .room-cell .room-no { font-size: 11px; }
+    .room-cell .room-status { font-size: 14px; }
+    .room-title { padding: 10px 14px; gap: 10px; }
+    .room-title .avatar { font-size: 30px; }
+    .room-title .name { font-size: 14px; }
+    .room-title .detail { font-size: 11px; }
+    .monitor { grid-template-columns: 82px 1fr; padding: 8px 10px; gap: 3px 6px; }
+    .label-cell .name { font-size: 9px; }
+    .label-cell .value { font-size: 20px; }
+    .label-cell .sub { font-size: 10px; }
+    .value.measuring { font-size: 12px; }
+    .value.na { font-size: 14px; }
+    .wave-cell { height: 36px; }
+    .stage-card { padding: 12px 14px; }
+    .stage-title { font-size: 13px; }
+    .stage-body { font-size: 14px; }
+    .next-btn { padding: 12px 18px; font-size: 14px; }
+    .question-prompt { font-size: 14px; padding: 12px 14px; }
+    .choice-btn { font-size: 14px; padding: 12px 14px; min-height: 48px; }
+    .choice-btn .icon { font-size: 20px; }
+    .feedback { padding: 12px 14px; }
+    .feedback-title { font-size: 16px; }
+    .feedback-body { font-size: 13px; }
+    .alert-overlay { font-size: 20px; }
+    .alert-content { padding: 20px 24px; }
+    .opening { padding: 20px; }
+    .opening h1 { font-size: 20px; }
+    .opening .lead { font-size: 14px; }
+    .sound-toggle { top: 6px; right: 6px; font-size: 11px; padding: 6px 10px; }
+    .transition-overlay { font-size: 20px; }
   }
 </style>
 </head>
 <body>
-<button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔇 音 OFF</button>
+<button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔇 音を ON</button>
 <div class="app" id="app"></div>
 
 <script>
 // ==============================================================
-// シナリオ定義(段階的ストーリー)
+// ヘルパー:バイタルアニメーション用の遅めのデフォルト
+// ==============================================================
+const SLOW = 10000;   // 一般的なゆっくり変化(10秒)
+const MEDIUM = 6000;
+const QUICK = 3000;
+
+// ==============================================================
+// シナリオ定義
 // ==============================================================
 const ROOMS = [
   // ============ OR1: 心筋梗塞 ============
@@ -304,14 +349,15 @@ const ROOMS = [
     initialVitals: { hr: 78, sbp: 150, dbp: 90, spo2: 99, etco2: 35, bis: 45, temp: 36.5 },
     stages: [
       { type: "narration", text: "あなたは <b>今日の麻酔科責任者(スーパーバイザー、略して SV)</b>。手術室 1 の様子を見に行きます。" },
-      { type: "narration", text: "OR1 に入りました。<br>患者さんは <b>田中さん、60歳の男性</b>。持病は 高血圧・糖尿病・脂質異常症。普段の血圧は 150/90 で、あまりコントロールが良くない方です。" },
+      { type: "narration", text: "OR1 に入りました。<br>患者さんは <b>田中さん、60歳の男性</b>。持病は高血圧・糖尿病・脂質異常症。普段の血圧は 150/90 で、あまりコントロールが良くない方です。" },
       { type: "narration", text: "<b>バイタルサインモニターを見てみましょう。</b><br>初めての人のために、モニターの見方を教えるね。" },
-      { type: "tutorial", target: "hr",   title: "❤️ HR(心拍数)",       body: "1 分間に心臓が何回動いてるか。<b>60〜100</b> が普通。田中さんは <b>78</b> なので正常。" },
-      { type: "tutorial", target: "bp",   title: "🩸 NIBP(血圧)",       body: "血液を全身に送る圧の強さ。<b>上/下</b>で表示。田中さんは <b>150/90</b>、普段から少し高め。" },
-      { type: "tutorial", target: "spo2", title: "💨 SpO₂(酸素飽和度)", body: "血液の中の酸素の量。<b>96〜100%</b> が正常。<b>99%</b> なので満タン近く。" },
-      { type: "tutorial", target: "co2",  title: "🌬 EtCO₂(呼気二酸化炭素)", body: "吐いた息の中の CO₂ 量。<b>35〜45</b> が正常。呼吸ができてる目安。" },
-      { type: "tutorial", target: "bis",  title: "🧠 BIS(脳波指標)",    body: "脳波から眠りの深さを数値化。手術中は <b>40〜60</b> を目指す。<b>45</b> なのでしっかり眠ってる。" },
-      { type: "tutorial", target: "temp", title: "🌡 体温",             body: "体の中心温度。<b>36〜37℃</b> が正常。手術中は下がりやすいから加温マットで温めてる。" },
+      { type: "tutorial", target: "hr",   title: "❤️ HR(心拍数)",           body: "1 分間に心臓が何回動いてるか。<b>60〜100</b> が普通。田中さんは <b>78</b> なので正常。" },
+      { type: "ecgTutorial", title: "❤️ 心電図(ECG)の波形",           body: "心臓の電気の波は「<b>P・QRS・T</b>」の 3 つに分かれます。P=心房が動く、QRS=心室が動く(1番大きな波)、T=心室が休む。<br>この <b>波が乱れる=不整脈</b>。ST の部分が上がる=<b>心臓の血管が詰まる(心筋梗塞)</b>のサインです。" },
+      { type: "tutorial", target: "bp",   title: "🩸 NIBP(血圧・マンシェット式)", body: "血液を全身に送る圧の強さ。<b>上/下</b>で表示。田中さんは <b>150/90</b>、普段から少し高め。<br>マンシェット(腕帯)で1〜5分ごとに測るタイプ。波形は出ません。" },
+      { type: "tutorial", target: "spo2", title: "💨 SpO₂(酸素飽和度)",       body: "血液の中の酸素の量。<b>96〜100%</b> が正常。<b>99%</b> なので満タン近く。" },
+      { type: "tutorial", target: "co2",  title: "🌬 EtCO₂(呼気二酸化炭素)",  body: "吐いた息の中の CO₂ 量。<b>35〜45</b> が正常。呼吸ができてる目安。" },
+      { type: "tutorial", target: "bis",  title: "🧠 BIS(脳波指標)",         body: "脳波から眠りの深さを数値化。手術中は <b>40〜60</b> を目指す。<b>45</b> なのでしっかり眠ってる。" },
+      { type: "tutorial", target: "temp", title: "🌡 体温",                  body: "体の中心温度。<b>36〜37℃</b> が正常。手術中は下がりやすいから加温マットで温めてる。" },
       { type: "narration", text: "モニターの見方はわかったかな?<br>ではここから、田中さんの手術中の様子を見ていきましょう。<br><b>変化を見落とさないで!</b>" },
       { type: "alert", text: "ピロロン♪ アラームが鳴った!", vitalsAfter: { hr: 92 }, ecgMode: "st_elevation" },
       { type: "question",
@@ -324,12 +370,16 @@ const ROOMS = [
         correctTitle: "Great!! 👏 正解!",
         correctBody: "<b>心電図の ST という部分が上がってる</b>のを見つけたね!<br>これは <b>心臓の血管が詰まっている変化</b>で、<b>心筋梗塞(しんきんこうそく)</b>と言います。心臓の筋肉が酸素不足で悲鳴を上げてる状態。",
         wrongTitle: "実は…",
-        wrongBody: "正解は <b>心電図</b>。ECG の <b>ST という部分が上がってる</b>のが見えたはず。これは <b>心臓の血管が詰まる = 心筋梗塞</b> のサイン。"
+        wrongBody: "正解は <b>心電図</b>。ECG の <b>ST 部分が上がってる</b>のが見えたはず。これは <b>心臓の血管が詰まる = 心筋梗塞</b> のサイン。"
       },
-      { type: "narration", text: "続いて…田中さんの<b>血圧がゆっくり下がって</b>きました。" },
-      { type: "vitalsChange", vitals: { sbp: 80, dbp: 50, hr: 105 }, duration: 5000 },
+      { type: "narration", text: "心筋梗塞で心臓が弱ると、血液を送る力(=血圧)が下がってきます。<br>マンシェットで血圧を測ってみましょう。" },
+      { type: "nibpMeasure", target: { sbp: 120, dbp: 80 }, msg: "少し下がった…" },
+      { type: "narration", text: "しばらくして、また血圧計が測ります…" },
+      { type: "nibpMeasure", target: { sbp: 90, dbp: 60 }, msg: "さらに下がってきた!" },
+      { type: "narration", text: "続いて次の測定…" },
+      { type: "nibpMeasure", target: { sbp: 80, dbp: 50 }, msg: "80/50 まで下がった!", alarmAfter: true },
       { type: "question",
-        prompt: "Q2:心電図で心筋梗塞、血圧も下がってきた。<b>あなたはどうする?</b>",
+        prompt: "Q2:心電図で心筋梗塞、血圧も 80/50 まで下がってきた。<b>あなたはどうする?</b>",
         choices: [
           { text: "このまま手術を続ける", icon: "🔪", correct: false },
           { text: "手術は中止", icon: "🛑", correct: true }
@@ -340,7 +390,7 @@ const ROOMS = [
         wrongBody: "心臓が弱ってる時に手術を続けると命に関わる。<br><b>まず手術を中止して、心臓を守る</b>のが正解。"
       },
       { type: "narration", text: "手術を中止して、<b>心臓エコー</b>で確認します。<br>→ <b>心臓の動きが悪くなっている!</b> 大変!" },
-      { type: "narration", text: "循環器内科の先生を呼びます。<br>「心筋梗塞、血管詰まってる可能性が高いです。<b>PCI(心臓のカテーテル治療)</b> をお願いします!」" },
+      { type: "narration", text: "循環器内科の先生を呼びます。<br>「心筋梗塞、血管詰まってる可能性が高いです。<b>PCI(心臓のカテーテル治療)</b>をお願いします!」" },
       { type: "dialogue", speaker: "外科医", side: "other", text: "手術は中止、患者さんの<b>ご家族にも状況を説明</b>してきますね。" },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "はい、お願いします。私は循環器の先生と対応を進めます。" },
       { type: "narration", text: "田中さんは救急で <b>カテーテル室</b> へ運ばれ、詰まった血管が開通。<br><b>命は助かりました。</b> ✨" },
@@ -357,15 +407,19 @@ const ROOMS = [
       detail: "既往:なし・健康・<b>初めての全身麻酔</b>",
       surgery: "腹腔鏡下 胆嚢摘出術・術中"
     },
-    initialVitals: { hr: 88, sbp: 128, dbp: 78, spo2: 99, etco2: 38, bis: 45, temp: 37.2 },
+    initialVitals: { hr: 78, sbp: 128, dbp: 78, spo2: 99, etco2: 38, bis: 45, temp: 36.5 },
     stages: [
-      { type: "narration", text: "OR2 に入りました。<br>山田さん、40歳女性。健康な人で、<b>今日が人生初めての全身麻酔</b>。" },
-      { type: "narration", text: "手術開始から順調に経過…と思ったら、モニターが少しずつ変化してきています。" },
-      { type: "vitalsChange", vitals: { hr: 105, etco2: 48, temp: 37.8 }, duration: 4000 },
-      { type: "narration", text: "「先生、体温が少しずつ上がってきています。EtCO₂ も上がってきました…」" },
-      { type: "vitalsChange", vitals: { hr: 130, etco2: 62, temp: 39.2 }, duration: 4000 },
+      { type: "narration", text: "OR2 に入りました。<br>山田さん、40歳女性。健康な人で、<b>今日が人生初めての全身麻酔</b>です。" },
+      { type: "narration", text: "手術開始から順調…と思ったら、体温が少しずつ上がってきました。" },
+      { type: "vitalsChange", vitals: { temp: 37.0 }, duration: SLOW },
+      { type: "narration", text: "「先生、体温が 37.0℃ になりました。」<br>まだ許容範囲だけど…続けて観察します。" },
+      { type: "vitalsChange", vitals: { hr: 90, etco2: 44, temp: 37.5 }, duration: SLOW },
+      { type: "narration", text: "「先生、37.5℃、心拍も 90 まで上がってます…」" },
+      { type: "vitalsChange", vitals: { hr: 108, etco2: 52, temp: 38.2 }, duration: SLOW },
+      { type: "narration", text: "「体温 38.2℃!EtCO₂ も 52 まで!」ちょっと嫌な予感…" },
+      { type: "vitalsChange", vitals: { hr: 130, etco2: 62, temp: 39.2 }, duration: SLOW },
       { type: "alert", text: "ピロロン♪ 体温 39.2℃・EtCO₂ 62!" },
-      { type: "narration", text: "看護師「先生!<b>尿の色が赤褐色(コーラ色)</b>です!血液検査の結果、<b>K(カリウム)が 6.0</b> と高いです!」" },
+      { type: "narration", text: "看護師「先生!<b>尿の色が赤褐色(コーラ色)</b>です!血液検査で <b>K(カリウム)が 6.0</b> と高いです!」" },
       { type: "question",
         prompt: "Q1:体温↑↑ + EtCO₂↑↑ + 赤褐色の尿 + 高K。<b>何を疑う?</b>",
         choices: [
@@ -391,8 +445,13 @@ const ROOMS = [
         wrongBody: "MH は数分で命に関わる。<br><b>まずトリガー(セボフルラン)を止める</b> のが正解。原因を除くのが医療の基本。"
       },
       { type: "narration", text: "続いて、<b>MH の特効薬「ダントロレン」</b> を使います。<br>2.5 mg/kg を静脈から投与。体表冷却+冷却輸液も並行。応援を呼び、みんなで対応!" },
-      { type: "vitalsChange", vitals: { hr: 95, etco2: 42, temp: 38.4 }, duration: 4000 },
-      { type: "narration", text: "少しずつ、EtCO₂ も体温も落ち着いてきました。手術は中止、山田さんは ICU へ搬送されます。" },
+      { type: "narration", text: "ダントロレンの効果はゆっくり現れます…" },
+      { type: "vitalsChange", vitals: { hr: 115, etco2: 55, temp: 38.9 }, duration: SLOW },
+      { type: "narration", text: "少しだけ改善。まだ油断できません。" },
+      { type: "vitalsChange", vitals: { hr: 100, etco2: 48, temp: 38.4 }, duration: SLOW },
+      { type: "narration", text: "「先生、体温がやっと下がり始めました…」" },
+      { type: "vitalsChange", vitals: { hr: 88, etco2: 42, temp: 37.8 }, duration: SLOW },
+      { type: "narration", text: "手術は中止、山田さんは ICU へ搬送されます。24 時間はダントロレンを継続して、しっかりモニタします。" },
       { type: "dialogue", speaker: "外科医", side: "other", text: "ご家族に説明してきます。命が助かって本当に良かった。" },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "はい。<b>家族にも MH の遺伝子検査</b> を勧めましょう。子どもさんも同じ体質かもしれない。" },
       { type: "roomComplete", outcome: "ダントロレン+冷却で救命、ICU 経て回復。家族に MH 遺伝子検査を勧める。" }
@@ -410,10 +469,13 @@ const ROOMS = [
     },
     initialVitals: { hr: 72, sbp: 118, dbp: 72, spo2: 99, etco2: 36, bis: 45, temp: 36.6 },
     stages: [
-      { type: "narration", text: "OR3 に入りました。<br>鈴木さん、28 歳男性、健康なスポーツマン。骨折の手術中。" },
+      { type: "narration", text: "OR3 に入りました。<br>鈴木さん、28 歳男性、健康なスポーツマン。骨折の手術中です。" },
       { type: "narration", text: "順調に経過していたところ…" },
-      { type: "alert", text: "ピロピロピロ!! 緊急アラーム!", vitalsAfter: { hr: 0, sbp: 60, dbp: 30, spo2: 88, etco2: 12 }, ecgMode: "vf" },
-      { type: "narration", text: "看護師「先生!心電図が乱れて<b>脈が触れません!</b> モニターは <b>VF(心室細動)</b>!」" },
+      { type: "alert",
+        text: "ピロピロピロ!!! 緊急アラーム!",
+        vitalsAfter: { hr: 0, spo2: 88, etco2: 12, bpUnmeasurable: true },
+        ecgMode: "vf" },
+      { type: "narration", text: "看護師「先生!心電図が乱れてバラバラ!<b>脈が触れません!</b>」<br>モニターは <b>VF(心室細動)</b>!血圧計も測れません。" },
       { type: "question",
         prompt: "Q1:VF!<b>1 秒でも早く何をする?</b>",
         choices: [
@@ -426,9 +488,12 @@ const ROOMS = [
         wrongTitle: "危険!",
         wrongBody: "VF では <b>薬より先に電気ショック</b>。抗不整脈薬は DC で戻らない時の追加。<br>疑わしきは治療 — 迷ってる時間はない。"
       },
-      { type: "narration", text: "DC 150J、実施!<br>「ドン!」" },
-      { type: "vitalsChange", vitals: { hr: 78, sbp: 110, dbp: 70, spo2: 98, etco2: 35 }, duration: 2000 },
-      { type: "narration", text: "<b>洞調律に回復!</b> 脈が触れる!救命成功!" },
+      { type: "narration", text: "DC 150J、実施!<br>「みんな離れてー!」「ドン!!」" },
+      { type: "vitalsChange",
+        vitals: { hr: 78, spo2: 98, etco2: 35, bpUnmeasurable: false, sbp: 110, dbp: 70 },
+        duration: QUICK,
+        ecgModeAfter: null },
+      { type: "narration", text: "<b>波形が正常に戻った!</b> 洞調律に回復!脈も触れる!救命成功!" },
       { type: "narration", text: "手術は中止、循環器内科でしっかり調べたところ…<b>ブルガダ症候群</b>と判明。<br>若い健康な人でも突然死する遺伝性の病気で、心電図に特徴的な変化があります。" },
       { type: "dialogue", speaker: "循環器内科の先生", side: "other", text: "植え込み型除細動器(ICD)の適応かもしれません。しっかりフォローします。" },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "ありがとうございます。<b>ご家族にも心電図検査</b> を勧めましょう。" },
@@ -436,37 +501,45 @@ const ROOMS = [
     ]
   },
 
-  // ============ OR4: 白内障・緊張性高血圧 ============
+  // ============ OR4: 白内障・緊張性高血圧(意識あり) ============
   {
     no: 4, name: "OR4",
     patient: {
       avatar: "👵",
       name: "佐藤さん(72歳女性)",
       detail: "既往:高血圧・軽度不安障害",
-      surgery: "眼科 白内障手術・局所麻酔+鎮静中"
+      surgery: "眼科 白内障手術・<b>局所麻酔(痛み止め注射のみ)+ 意識あり</b>"
     },
-    initialVitals: { hr: 95, sbp: 190, dbp: 110, spo2: 98, etco2: 38, bis: 82, temp: 36.6 },
+    // BIS 92 = 起きてる状態(鎮静剤はまだ使ってない)
+    initialVitals: { hr: 88, sbp: 160, dbp: 95, spo2: 98, etco2: 38, bis: 92, temp: 36.6 },
     stages: [
-      { type: "narration", text: "OR4 に入りました。<br>佐藤さん、72 歳女性。白内障手術中で、<b>局所麻酔+軽い眠りのお薬</b>のみ。意識はあります。" },
-      { type: "narration", text: "眼科手術は「動いちゃダメ」「見えないから怖い」というストレスがかかります。" },
-      { type: "alert", text: "ピロン♪ 血圧アラーム!" },
-      { type: "narration", text: "看護師「先生、<b>血圧が 190/110</b> まで上がってます。患者さんが『怖い、怖い』とおっしゃってます」" },
+      { type: "narration", text: "OR4 に入りました。<br>佐藤さん、72 歳女性。<b>白内障手術中</b>。目に痛み止めの注射(局所麻酔)だけで、<b>まだ眠りの薬(鎮静剤)は使っていません</b>。意識はハッキリしています。" },
+      { type: "narration", text: "モニターを確認 — BIS 92(起きてる)、血圧 160/95(もともと高めの方)。手術は始まったばかり。" },
+      { type: "narration", text: "…と思ったら、血圧が少しずつ上がってきました。" },
+      { type: "vitalsChange", vitals: { sbp: 175, dbp: 102, hr: 92 }, duration: MEDIUM },
+      { type: "narration", text: "看護師さん「先生、血圧上がってきてます…」" },
+      { type: "vitalsChange", vitals: { sbp: 190, dbp: 110, hr: 100 }, duration: MEDIUM },
+      { type: "alert", text: "ピロン♪ 血圧アラーム!190/110!" },
+      { type: "narration", text: "看護師「患者さんが『怖い、怖い』とおっしゃってます。動きそうで…先生、来てくれませんか?」" },
       { type: "question",
-        prompt: "Q1:意識のある患者さんの高血圧。<b>まず何をする?</b>",
+        prompt: "Q1:意識のある患者さんの高血圧+不安。<b>まず何をする?</b>",
         choices: [
           { text: "少し鎮静を足して、優しく声かけて安心してもらう", icon: "💤", correct: true },
           { text: "強い降圧薬をどんどん静注", icon: "💊", correct: false },
           { text: "手術を中止して患者を退室させる", icon: "🚨", correct: false }
         ],
         correctTitle: "正解! ✅",
-        correctBody: "眼科手術は<b>意識がある状態</b>。「見えないから怖い」というストレスで血圧が上がる。<br>まず <b>患者さんの気持ちに寄り添う</b> + 少量の鎮静剤でリラックスしてもらえば血圧も下がる。<br>麻酔科医は <b>心のケア</b> も大事な仕事。",
+        correctBody: "眼科手術は <b>意識がある状態</b>。「見えないから怖い」というストレスで血圧が上がる。<br>まず <b>患者さんの気持ちに寄り添う</b> + 少量の鎮静剤でリラックスしてもらえば血圧も下がる。<br>麻酔科医は <b>心のケア</b> も大事な仕事。",
         wrongTitle: "惜しい!",
         wrongBody: "降圧薬だけでは <b>患者さんの恐怖は消えない</b>し、下がりすぎるリスクもある。<br>手術中止は過剰対応。<b>まず心のケアと少量の鎮静</b> が正解。"
       },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "佐藤さん、大丈夫ですよ。あと10分で終わります。少し眠くなるお薬を追加しますね。" },
-      { type: "dialogue", speaker: "佐藤さん", side: "other", text: "…先生、ありがとう。安心する…" },
-      { type: "vitalsChange", vitals: { sbp: 138, dbp: 82, hr: 78, bis: 70 }, duration: 3000 },
-      { type: "narration", text: "血圧も落ち着いて、手術は無事に完了。<br>翌日、佐藤さんは「あら、こんなに世界がきれいだったのね」と喜んでいます。" },
+      { type: "dialogue", speaker: "佐藤さん", side: "other", text: "…先生、ありがとう…" },
+      { type: "narration", text: "少量の鎮静剤(ミダゾラム 1mg)を静注。ゆっくり効いてきます…" },
+      { type: "vitalsChange", vitals: { bis: 82, sbp: 175, dbp: 100, hr: 92 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { bis: 76, sbp: 150, dbp: 88, hr: 85 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { bis: 72, sbp: 128, dbp: 78, hr: 78 }, duration: MEDIUM },
+      { type: "narration", text: "血圧も心拍も落ち着きました。BIS 72 で軽く眠っている状態。<br>手術は無事に完了。翌日、佐藤さんは「あら、こんなに世界がきれいだったのね」と喜んでいます。" },
       { type: "roomComplete", outcome: "鎮静と声かけで安心、白内障手術完了。「先生、ありがとう」" }
     ]
   },
@@ -480,11 +553,14 @@ const ROOMS = [
       detail: "既往:健康・アレルギー既往なし",
       surgery: "扁桃摘出術・全身麻酔導入直後"
     },
-    initialVitals: { hr: 155, sbp: 62, dbp: 35, spo2: 92, etco2: 28, bis: 45, temp: 36.6 },
+    initialVitals: { hr: 100, sbp: 92, dbp: 55, spo2: 99, etco2: 35, bis: 45, temp: 36.6 },
     stages: [
       { type: "narration", text: "OR5 に入りました。<br><b>ゆうくん、5 歳の男の子</b>。扁桃(のどのリンパ)を取る手術。<br>麻酔導入したところ…" },
-      { type: "alert", text: "ピロピロ!! 緊急コール!!" },
-      { type: "narration", text: "看護師「先生!<b>筋弛緩薬(ロクロニウム)を入れた直後</b>から、顔と胸に<b>真っ赤な発疹</b>が!血圧が急降下、ゼーゼーいう<b>喘鳴</b>も!」" },
+      { type: "narration", text: "筋弛緩薬(ロクロニウム)を入れた直後から、様子がおかしくなってきました。" },
+      { type: "vitalsChange", vitals: { hr: 130, sbp: 75, dbp: 45, spo2: 95, etco2: 32 }, duration: MEDIUM },
+      { type: "narration", text: "看護師「先生!顔と胸に<b>真っ赤な発疹</b>が広がってます!ゼーゼーいう<b>喘鳴</b>も!」" },
+      { type: "vitalsChange", vitals: { hr: 155, sbp: 62, dbp: 35, spo2: 92, etco2: 28 }, duration: MEDIUM },
+      { type: "alert", text: "ピロピロ!! 緊急コール!! HR 155・BP 62/35!" },
       { type: "question",
         prompt: "Q1:発疹+喘鳴+血圧急低下。<b>何が起きた?</b>",
         choices: [
@@ -509,7 +585,10 @@ const ROOMS = [
         wrongTitle: "危険!",
         wrongBody: "抗ヒスタミンや輸液だけでは<b>命は助からない</b>。アナフィラキシーは <b>アドレナリンが第一選択</b>。数分の遅れが致命的。"
       },
-      { type: "vitalsChange", vitals: { hr: 110, sbp: 95, dbp: 60, spo2: 98, etco2: 35 }, duration: 3000 },
+      { type: "narration", text: "アドレナリンを筋注。ゆっくり効いてきます…" },
+      { type: "vitalsChange", vitals: { hr: 135, sbp: 78, dbp: 48, spo2: 95 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { hr: 120, sbp: 90, dbp: 55, spo2: 97, etco2: 33 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { hr: 110, sbp: 100, dbp: 62, spo2: 99, etco2: 35 }, duration: MEDIUM },
       { type: "narration", text: "アドレナリンでゆうくんの血圧と呼吸が回復!救命成功!<br>手術は延期、お母さんが泣いて喜んでいます。「本当に、本当にありがとうございます…!」" },
       { type: "roomComplete", outcome: "アドレナリンで救命、後日再手術予定。アレルギー検査へ。" }
     ]
@@ -529,9 +608,13 @@ const ROOMS = [
       { type: "narration", text: "OR6 に入りました。<br>32 歳女性、初産の帝王切開で、<b>赤ちゃんは無事に誕生</b>。<br>お母さんは目覚めて、赤ちゃんと面会しました。" },
       { type: "dialogue", speaker: "○○さん(お母さん)", side: "other", text: "先生、ありがとうございます…赤ちゃん、可愛い…" },
       { type: "narration", text: "赤ちゃんは NICU に移され、お母さんの手術も終わろうとしていた、その時…" },
-      { type: "alert", text: "ピロピロ!! 緊急!!" },
-      { type: "vitalsChange", vitals: { hr: 128, sbp: 78, dbp: 45, spo2: 96 }, duration: 3000 },
-      { type: "narration", text: "産科医「先生!子宮からの<b>大量出血</b>!<b>すでに 3000mL</b>!<b>お母さんの意識が薄れています</b>!」" },
+      { type: "vitalsChange", vitals: { hr: 100, sbp: 105, dbp: 62 }, duration: MEDIUM },
+      { type: "narration", text: "産科医「先生!子宮からの<b>出血が止まらない</b>!」" },
+      { type: "vitalsChange", vitals: { hr: 115, sbp: 90, dbp: 55 }, duration: MEDIUM },
+      { type: "narration", text: "「1500mL 超えました…まだ出続けてる」" },
+      { type: "vitalsChange", vitals: { hr: 128, sbp: 78, dbp: 45, spo2: 96 }, duration: MEDIUM },
+      { type: "alert", text: "ピロピロ!! 緊急!! 出血 3000mL!" },
+      { type: "narration", text: "産科医「<b>すでに 3000mL の出血</b>!<b>お母さんの意識が薄れています</b>!」" },
       { type: "question",
         prompt: "Q1:分娩後の大量出血。<b>最優先の対応は?</b>",
         choices: [
@@ -544,8 +627,12 @@ const ROOMS = [
         wrongTitle: "危険!",
         wrongBody: "子宮からの出血は<b>圧迫では止まらない</b>。<br>昇圧薬だけでは血液がない状態で血管を締めるだけ。<b>まず輸血+子宮収縮薬</b>が必須。躊躇は死に直結。"
       },
-      { type: "narration", text: "総勢 10 人以上のスタッフが集結。<br>輸血、子宮収縮薬、太いライン追加。<b>10 分後、出血は止まりました。</b>" },
-      { type: "vitalsChange", vitals: { hr: 92, sbp: 115, dbp: 72, spo2: 99 }, duration: 3000 },
+      { type: "narration", text: "総勢 10 人以上のスタッフが集結。輸血、子宮収縮薬、太いライン追加、みんなで対応!" },
+      { type: "vitalsChange", vitals: { hr: 118, sbp: 88, dbp: 52 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { hr: 105, sbp: 98, dbp: 60, spo2: 98 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { hr: 95, sbp: 108, dbp: 68, spo2: 99 }, duration: MEDIUM },
+      { type: "narration", text: "少しずつ血圧が戻ってきました。出血もようやく止まりそうです。" },
+      { type: "vitalsChange", vitals: { hr: 88, sbp: 115, dbp: 72 }, duration: MEDIUM },
       { type: "narration", text: "○○さんの意識が戻ります。「…先生…赤ちゃん…?」" },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "赤ちゃんは元気ですよ。お母さんも命は助かりました。明日には抱っこできますからね。" },
       { type: "roomComplete", outcome: "大量輸血+子宮収縮薬で救命、翌日には赤ちゃんを抱っこ。命が 2 つ助かった。" }
@@ -553,7 +640,7 @@ const ROOMS = [
   }
 ];
 
-// エンディング(6患者のその後)
+// エンディング
 const ENDINGS = [
   { avatar: "👨‍💼", text: "OR1 田中さん、PCI で冠動脈が開通。心臓は元気に。ご家族と再会できました。" },
   { avatar: "👩",   text: "OR2 山田さん、悪性高熱症から救命。家族にも遺伝子検査を勧めます。「生きててよかった」と。" },
@@ -575,14 +662,16 @@ let state = {
   correctCount: 0,
   totalQuestions: 0,
   highlightTarget: null,
-  ecgMode: null   // null | "st_elevation" | "vf"
+  ecgMode: null,   // null | "st_elevation" | "vf"
+  bpUnmeasurable: false,
+  bpMeasuring: false
 };
 
 let audioCtx = null;
 let pulseTimer = null;
 
 // ==============================================================
-// 音(Web Audio)
+// 音
 // ==============================================================
 function ensureAudio() {
   try {
@@ -614,6 +703,8 @@ function playCorrect()  { playSeq([{f:523,d:0.1},{f:659,d:0.1},{f:784,d:0.2}], 0
 function playWrong()    { playSeq([{f:330,d:0.15},{f:220,d:0.3}], 0.15, 0.09); }
 function playComplete() { playSeq([{f:523,d:0.15},{f:659,d:0.15},{f:784,d:0.15},{f:1047,d:0.4}], 0.15, 0.1); }
 function playPing()     { playTone(1200, 0.1, 0.05); }
+function playNibpStart(){ playTone(1000, 0.08, 0.05); }
+function playNibpDone() { playTone(1400, 0.08, 0.06); }
 
 function mapSpo2ToFreq(spo2) {
   const c = Math.max(60, Math.min(100, spo2 || 98));
@@ -641,25 +732,26 @@ function startPulse() {
   if (!state.soundOn) return;
   function tick() {
     if (!state.soundOn) return;
-    const hr = state.vitals.hr || 78;
-    if (hr > 0) playPulseBeep();
+    const hr = state.vitals.hr || 0;
+    if (hr > 0) playPulseBeep();  // hr=0(VF等) は鳴らさない
     pulseTimer = setTimeout(tick, hr > 30 ? 60000 / hr : 1000);
   }
   tick();
 }
 function stopPulse() { if (pulseTimer) { clearTimeout(pulseTimer); pulseTimer = null; } }
 
+// トグル:ボタンは「これを押したら何が起きるか(=action)」を表示
 function toggleSound() {
   state.soundOn = !state.soundOn;
   const btn = document.getElementById("soundToggle");
   if (state.soundOn) {
     ensureAudio();
     btn.classList.add("on");
-    btn.textContent = "🔊 音 ON";
+    btn.textContent = "🔊 音を OFF";  // 押すと OFF になるよ
     startPulse();
   } else {
     btn.classList.remove("on");
-    btn.textContent = "🔇 音 OFF";
+    btn.textContent = "🔇 音を ON";   // 押すと ON になるよ
     stopPulse();
   }
 }
@@ -792,13 +884,11 @@ function waveLoop() {
   const v = state.vitals || {};
   // ECG
   if (waves.ecg) {
-    let ecgFn;
     if (state.ecgMode === "vf") {
-      ecgFn = (ph, t) => ecgVFVal(t);
-      drawWave(waves.ecg, "#00ff66", ecgFn, 1, SPEED_FAST);
+      drawWave(waves.ecg, "#00ff66", (ph, t) => ecgVFVal(t), 1, SPEED_FAST);
     } else if (v.hr > 0) {
       const p = 60 / v.hr;
-      ecgFn = state.ecgMode === "st_elevation" ? ecgSTVal : ecgVal;
+      const ecgFn = state.ecgMode === "st_elevation" ? ecgSTVal : ecgVal;
       drawWave(waves.ecg, "#00ff66", ecgFn, p, SPEED_FAST);
       const pp = Math.min(1.0, Math.max(0.2, ((v.sbp || 120) - (v.dbp || 70)) / 50));
       drawWave(waves.pleth, "#00d4ff", (ph) => plethVal(ph, pp), p, SPEED_FAST);
@@ -837,7 +927,7 @@ function renderOpening() {
       </div>
       <div class="role-card">
         <h3>🔊 音について</h3>
-        <p>右上の「音」ボタンで、心拍音・アラート音を ON にできます。会場の音を出せるなら ON にすると臨場感UP!</p>
+        <p>右上の「音を ON」ボタンで、心拍音・アラート音が鳴ります。<br>会場の音が出せるなら ON にすると臨場感UP!(iPhone はサイレントモード解除も)</p>
       </div>
       <button class="start-btn" onclick="startGame()">▶ 手術室 1 へ行く</button>
     </div>
@@ -889,26 +979,30 @@ function renderRoomTitle(room) {
 
 function renderMonitor() {
   const v = state.vitals;
-  const sbpCls = v.sbp < 80 ? "low" : (v.sbp < 100 ? "warn" : (v.sbp > 180 ? "hot" : ""));
+  const sbpCls = state.bpUnmeasurable ? "na" : (state.bpMeasuring ? "measuring" : (v.sbp < 80 ? "low" : (v.sbp < 100 ? "warn" : (v.sbp > 180 ? "hot" : ""))));
   const hrCls = (v.hr === 0) ? "low" : (v.hr > 140 ? "hot" : (v.hr > 120 || v.hr < 50 ? "warn" : ""));
   const spo2Cls = v.spo2 < 92 ? "low" : (v.spo2 < 96 ? "warn" : "");
   const tempCls = v.temp >= 38.5 ? "hot" : (v.temp >= 37.8 ? "warn" : "");
   const etCls = v.etco2 > 60 ? "hot" : (v.etco2 > 45 ? "warn" : "");
-  const map = Math.round((v.sbp + 2 * v.dbp) / 3);
+  const hrDisplay = v.hr === 0 ? "—" : v.hr;
+  let bpDisplay, mapDisplay;
+  if (state.bpUnmeasurable) { bpDisplay = "測定不能"; mapDisplay = "—"; }
+  else if (state.bpMeasuring) { bpDisplay = "測定中..."; mapDisplay = "—"; }
+  else { bpDisplay = v.sbp + "/" + v.dbp; mapDisplay = "(" + Math.round((v.sbp + 2 * v.dbp) / 3) + ")"; }
   const h = state.highlightTarget;
   const hl = (name) => h === name ? "hl" : "";
   return `
     <div class="monitor" id="monitor">
       <div class="label-cell ${hl("hr")}">
         <span class="name v-hr">HR</span><span class="unit">(bpm)</span>
-        <span class="value v-hr ${hrCls}">${v.hr}</span>
+        <span class="value v-hr ${hrCls}">${hrDisplay}</span>
       </div>
       <div class="wave-cell"><canvas id="ecg"></canvas></div>
 
       <div class="label-cell ${hl("bp")}">
         <span class="name v-bp">NIBP</span><span class="unit">SYS/DIA</span>
-        <span class="value v-bp ${sbpCls}">${v.sbp}/${v.dbp}</span>
-        <span class="sub v-bp">(${map})</span>
+        <span class="value v-bp ${sbpCls}">${bpDisplay}</span>
+        <span class="sub v-bp">${mapDisplay}</span>
       </div>
       <div class="wave-cell empty"></div>
 
@@ -957,6 +1051,8 @@ function enterRoom(idx) {
   state.currentStageIdx = 0;
   state.highlightTarget = null;
   state.ecgMode = null;
+  state.bpUnmeasurable = false;
+  state.bpMeasuring = false;
   const room = ROOMS[idx];
   state.vitals = { ...room.initialVitals };
   runStage(0);
@@ -992,7 +1088,33 @@ function runStage(idx) {
       playPing();
       break;
 
+    case "ecgTutorial":
+      state.highlightTarget = "hr";
+      renderRoomFrame(`
+        <div class="stage-card tutorial">
+          <div class="stage-title tutorial">${stage.title}</div>
+          <svg class="ecg-tutorial-svg" viewBox="0 0 320 100">
+            <!-- 心電図の波形 -->
+            <path d="M 10,60 L 40,60 Q 55,55 65,60 Q 75,64 85,60 L 110,60 L 118,64 L 123,20 L 130,90 L 137,50 L 155,60 Q 175,50 195,60 L 240,60 Q 258,53 275,60 Q 285,64 295,60 L 315,60"
+                  stroke="#00ff66" fill="none" stroke-width="2"/>
+            <!-- ラベル -->
+            <text x="60" y="42" fill="#ffd93d" font-size="14" font-weight="700">P</text>
+            <text x="118" y="15" fill="#ffd93d" font-size="14" font-weight="700">QRS</text>
+            <text x="180" y="42" fill="#ffd93d" font-size="14" font-weight="700">T</text>
+            <!-- 補助線 -->
+            <line x1="60" y1="46" x2="60" y2="60" stroke="#ffd93d" stroke-width="0.5" stroke-dasharray="2,2"/>
+            <line x1="127" y1="20" x2="127" y2="60" stroke="#ffd93d" stroke-width="0.5" stroke-dasharray="2,2"/>
+            <line x1="180" y1="46" x2="180" y2="60" stroke="#ffd93d" stroke-width="0.5" stroke-dasharray="2,2"/>
+          </svg>
+          <div class="stage-body">${stage.body}</div>
+          <button class="next-btn" onclick="nextStage()">次へ →</button>
+        </div>
+      `);
+      playPing();
+      break;
+
     case "dialogue":
+      state.highlightTarget = null;
       const sideCls = stage.side === "you" ? "you" : "";
       renderRoomFrame(`
         <div class="stage-card dialogue ${sideCls}">
@@ -1005,15 +1127,58 @@ function runStage(idx) {
       break;
 
     case "alert":
-      if (stage.vitalsAfter) state.vitals = { ...state.vitals, ...stage.vitalsAfter };
-      if (stage.ecgMode) state.ecgMode = stage.ecgMode;
+      if (stage.vitalsAfter) {
+        Object.assign(state.vitals, stage.vitalsAfter);
+        if (stage.vitalsAfter.bpUnmeasurable !== undefined) state.bpUnmeasurable = stage.vitalsAfter.bpUnmeasurable;
+      }
+      if (stage.ecgMode !== undefined) state.ecgMode = stage.ecgMode;
       showAlertOverlay(stage.text, () => nextStage());
       break;
 
     case "vitalsChange":
-      animateVitals(stage.vitals, stage.duration || 3000, () => {
-        setTimeout(nextStage, 500);
+      if (stage.vitals && stage.vitals.bpUnmeasurable !== undefined) {
+        state.bpUnmeasurable = stage.vitals.bpUnmeasurable;
+      }
+      if (stage.ecgModeAfter !== undefined) state.ecgMode = stage.ecgModeAfter;
+      animateVitals(stage.vitals, stage.duration || SLOW, () => {
+        setTimeout(nextStage, 400);
       });
+      break;
+
+    case "nibpMeasure":
+      // マンシェット血圧測定シミュレーション
+      renderRoomFrame(`
+        <div class="stage-card narration">
+          <div class="stage-body">🩸 ${stage.msg || "血圧計が測定中です..."}</div>
+          <button class="next-btn" id="nibpNext" disabled>測定中...</button>
+        </div>
+      `);
+      state.bpMeasuring = true;
+      // モニターだけ再レンダリング
+      const monEl = document.getElementById("monitor");
+      if (monEl) { monEl.outerHTML = renderMonitor(); reinitCanvases(); }
+      playNibpStart();
+      // 測定音を数回鳴らす(マンシェットの beep beep 感)
+      setTimeout(() => playNibpStart(), 400);
+      setTimeout(() => playNibpStart(), 800);
+      setTimeout(() => playNibpStart(), 1200);
+      setTimeout(() => {
+        state.bpMeasuring = false;
+        state.vitals.sbp = stage.target.sbp;
+        state.vitals.dbp = stage.target.dbp;
+        const m = document.getElementById("monitor");
+        if (m) { m.outerHTML = renderMonitor(); reinitCanvases(); }
+        playNibpDone();
+        // アラーム後処理
+        if (stage.alarmAfter) setTimeout(playAlert, 200);
+        // 次へ ボタン活性化
+        const btn = document.getElementById("nibpNext");
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "次へ →";
+          btn.onclick = nextStage;
+        }
+      }, 2500);
       break;
 
     case "question":
@@ -1033,12 +1198,15 @@ function runStage(idx) {
       break;
 
     case "roomComplete":
+      // モニターは出さない(改善済み・シンプルに祝う)
       state.highlightTarget = null;
-      renderRoomFrame(`
-        <div class="stage-card narration" style="border-left-color:#27ae60; background: linear-gradient(to right, #d4f4dd 0%, white 100%);">
-          <div class="stage-title" style="color:#1e8449;">🎉 ${ROOMS[state.currentRoomIdx].name} クリア!</div>
-          <div class="stage-body"><b>結末:</b> ${stage.outcome}</div>
-          <button class="next-btn" onclick="completeRoom()">${state.currentRoomIdx < 5 ? `▶ OR${state.currentRoomIdx + 2} へ移動` : "🎊 手術室全制覇!"}</button>
+      if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+      const isLast = state.currentRoomIdx >= 5;
+      render(renderHeader() + `
+        <div class="stage-card narration" style="border-left-color:#27ae60; background: linear-gradient(to right, #d4f4dd 0%, white 100%); padding: 24px;">
+          <div class="stage-title" style="color:#1e8449; font-size: 20px;">🎉 ${ROOMS[state.currentRoomIdx].name} クリア!</div>
+          <div class="stage-body" style="margin-top: 10px;"><b>結末:</b> ${stage.outcome}</div>
+          <button class="next-btn" onclick="completeRoom()">${isLast ? "🎊 手術室全制覇!" : `▶ OR${state.currentRoomIdx + 2} へ移動`}</button>
         </div>
       `);
       playCorrect();
@@ -1065,28 +1233,19 @@ function selectChoice(idx) {
     if (i === idx) b.classList.add(choice.correct ? "correct" : "wrong");
     else if (stage.choices[i].correct) setTimeout(() => b.classList.add("correct"), 500);
   });
-  if (choice.correct) {
-    state.correctCount++;
-    playCorrect();
-  } else {
-    playWrong();
-  }
+  if (choice.correct) { state.correctCount++; playCorrect(); }
+  else { playWrong(); }
   setTimeout(() => {
     const feedbackHtml = `
       <div class="feedback ${choice.correct ? 'correct' : 'wrong'}">
         <div class="feedback-title">${choice.correct ? stage.correctTitle : stage.wrongTitle}</div>
         <div class="feedback-body">${choice.correct ? stage.correctBody : stage.wrongBody}</div>
-        <button class="next-btn" onclick="afterQuestion(${choice.correct ? 'true' : 'false'})">次へ →</button>
+        <button class="next-btn" onclick="nextStage()">次へ →</button>
       </div>
     `;
     document.getElementById("choices").insertAdjacentHTML("afterend", feedbackHtml);
     document.querySelector(".feedback").scrollIntoView({ behavior: "smooth", block: "start" });
   }, 800);
-}
-
-function afterQuestion(wasCorrect) {
-  // 正解でも不正解でも先に進む(高校生向け:諦めさせない)
-  nextStage();
 }
 
 function showAlertOverlay(text, callback) {
@@ -1095,10 +1254,7 @@ function showAlertOverlay(text, callback) {
   overlay.className = "alert-overlay";
   overlay.innerHTML = `<div class="alert-content">⚠️ ${text}</div>`;
   document.body.appendChild(overlay);
-  setTimeout(() => {
-    overlay.remove();
-    callback();
-  }, 2200);
+  setTimeout(() => { overlay.remove(); callback(); }, 2200);
 }
 
 function animateVitals(target, duration, callback) {
@@ -1108,17 +1264,14 @@ function animateVitals(target, duration, callback) {
     const t = Math.min(1, (performance.now() - startTime) / duration);
     const eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
     Object.keys(target).forEach(k => {
+      if (k === "bpUnmeasurable") return; // 直接セット済
       const s = start[k], e = target[k];
       if (typeof s === "number" && typeof e === "number") {
         state.vitals[k] = k === "temp" ? +(s + (e - s) * eased).toFixed(1) : Math.round(s + (e - s) * eased);
       }
     });
-    // update monitor values only (avoid full re-render)
     const m = document.getElementById("monitor");
-    if (m) {
-      m.outerHTML = renderMonitor();
-      reinitCanvases();
-    }
+    if (m) { m.outerHTML = renderMonitor(); reinitCanvases(); }
     if (t < 1) requestAnimationFrame(step);
     else callback();
   }
@@ -1183,15 +1336,14 @@ function renderSerious() {
     lines.push({ delay: 4500 + i * 3500, cls: "story", html: `<span class="avatar">${e.avatar}</span>${e.text}` });
   });
   const afterStories = 4500 + ENDINGS.length * 3500 + 2000;
-  lines.push({ delay: afterStories,        cls: "big",   html: "今日、あなたは 6 人の命を守りました。" });
-  lines.push({ delay: afterStories + 4000, cls: "",      html: "毎日、日本のどこかの手術室で" });
-  lines.push({ delay: afterStories + 5500, cls: "",      html: "こうしている 麻酔科医 がいます。" });
-  lines.push({ delay: afterStories + 8000, cls: "small", html: "名前を知られることは、あまりありません。" });
-  lines.push({ delay: afterStories + 10500,cls: "",      html: "でも、その一人が" });
-  lines.push({ delay: afterStories + 12000,cls: "",      html: "あなたの家族の手術を支える日が、来るかもしれません。" });
-  lines.push({ delay: afterStories + 15500,cls: "big",   html: "命を預かる仕事は、こんなに重くて、こんなに美しい。" });
-  lines.push({ delay: afterStories + 19000,cls: "",      html: "もし将来、医療を志すなら" });
-  lines.push({ delay: afterStories + 20500,cls: "",      html: "手術室で待っています。" });
+  lines.push({ delay: afterStories,        cls: "big",   html: "今日、皆さんのチームは 6 人の命を守りました。" });
+  lines.push({ delay: afterStories + 4500, cls: "",      html: "毎日、世界のどこかの手術室で、" });
+  lines.push({ delay: afterStories + 6000, cls: "",      html: "緊急事態に対応している <b>医療スタッフ</b> がいます。" });
+  lines.push({ delay: afterStories + 9000, cls: "small", html: "いろんな診療科の先生、看護師、" });
+  lines.push({ delay: afterStories + 10500,cls: "small", html: "みんなが一生懸命、患者さんの変化を見逃しません。" });
+  lines.push({ delay: afterStories + 14000,cls: "big",   html: "手術室は <b>チーム</b> です。" });
+  lines.push({ delay: afterStories + 17500,cls: "",      html: "手術を受ける患者さんを守るのが、" });
+  lines.push({ delay: afterStories + 19000,cls: "",      html: "私たちの役割です。" });
 
   lines.forEach(line => {
     setTimeout(() => {
@@ -1207,7 +1359,7 @@ function renderSerious() {
     btn.textContent = "🔁 もう一度プレイする";
     btn.onclick = () => location.reload();
     container.appendChild(btn);
-  }, afterStories + 24000);
+  }, afterStories + 22000);
 }
 
 // ==============================================================
