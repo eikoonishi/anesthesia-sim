@@ -715,7 +715,7 @@ function ensureAudio() {
     if (audioCtx.state === "suspended") audioCtx.resume();
   } catch (e) {}
 }
-function playTone(freq, dur = 0.15, vol = 0.06, type = "sine") {
+function playTone(freq, dur = 0.15, vol = 0.15, type = "sine") {
   if (!state.soundOn) return;
   ensureAudio();
   if (!audioCtx) return;
@@ -731,16 +731,16 @@ function playTone(freq, dur = 0.15, vol = 0.06, type = "sine") {
     osc.start(now); osc.stop(now + dur + 0.02);
   } catch (e) {}
 }
-function playSeq(notes, gap = 0.1, vol = 0.08) {
+function playSeq(notes, gap = 0.1, vol = 0.18) {
   notes.forEach((n, i) => setTimeout(() => playTone(n.f, n.d || 0.15, vol), i * gap * 1000));
 }
-function playAlert()    { playSeq([{f:880,d:0.1},{f:660,d:0.1},{f:880,d:0.1}], 0.12, 0.1); }
-function playCorrect()  { playSeq([{f:523,d:0.1},{f:659,d:0.1},{f:784,d:0.2}], 0.1, 0.1); }
-function playWrong()    { playSeq([{f:330,d:0.15},{f:220,d:0.3}], 0.15, 0.09); }
-function playComplete() { playSeq([{f:523,d:0.15},{f:659,d:0.15},{f:784,d:0.15},{f:1047,d:0.4}], 0.15, 0.1); }
-function playPing()     { playTone(1200, 0.1, 0.05); }
-function playNibpStart(){ playTone(1000, 0.08, 0.05); }
-function playNibpDone() { playTone(1400, 0.08, 0.06); }
+function playAlert()    { playSeq([{f:880,d:0.15},{f:660,d:0.15},{f:880,d:0.15}], 0.15, 0.22); }
+function playCorrect()  { playSeq([{f:523,d:0.12},{f:659,d:0.12},{f:784,d:0.25}], 0.12, 0.20); }
+function playWrong()    { playSeq([{f:330,d:0.18},{f:220,d:0.35}], 0.18, 0.18); }
+function playComplete() { playSeq([{f:523,d:0.15},{f:659,d:0.15},{f:784,d:0.15},{f:1047,d:0.4}], 0.15, 0.22); }
+function playPing()     { playTone(1200, 0.1, 0.10); }
+function playNibpStart(){ playTone(1000, 0.08, 0.10); }
+function playNibpDone() { playTone(1400, 0.08, 0.12); }
 
 function mapSpo2ToFreq(spo2) {
   const c = Math.max(60, Math.min(100, spo2 || 98));
@@ -758,7 +758,7 @@ function playPulseBeep() {
     osc.frequency.value = mapSpo2ToFreq(state.vitals.spo2 || 98);
     const now = audioCtx.currentTime;
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.035, now + 0.005);
+    gain.gain.linearRampToValueAtTime(0.10, now + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
     osc.start(now); osc.stop(now + 0.1);
   } catch (e) {}
@@ -776,20 +776,71 @@ function startPulse() {
 }
 function stopPulse() { if (pulseTimer) { clearTimeout(pulseTimer); pulseTimer = null; } }
 
+// iOS 用の音声 unlock:無音のバッファを鳴らして再生権限を取る
+function unlockIOSAudio() {
+  if (!audioCtx) return;
+  try {
+    const buffer = audioCtx.createBuffer(1, 1, 22050);
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+  } catch (e) {}
+}
+
 // トグル:ボタンは「これを押したら何が起きるか(=action)」を表示
 function toggleSound() {
   state.soundOn = !state.soundOn;
   const btn = document.getElementById("soundToggle");
   if (state.soundOn) {
-    ensureAudio();
+    // AudioContext を作成
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // iOS 用 unlock(同期実行が必要)
+      unlockIOSAudio();
+      // resume 後にテスト音+心拍開始
+      const startAll = () => {
+        // 大きめのテスト音(3音)を鳴らす
+        playTone(660, 0.15, 0.20);
+        setTimeout(() => playTone(880, 0.15, 0.20), 200);
+        setTimeout(() => playTone(1100, 0.20, 0.20), 400);
+        setTimeout(() => startPulse(), 800);
+        // 「音出ました?」バナー表示
+        showSoundBanner();
+      };
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume().then(startAll).catch(startAll);
+      } else {
+        startAll();
+      }
+    } catch (e) {}
     btn.classList.add("on");
-    btn.textContent = "🔊 音を OFF";  // 押すと OFF になるよ
-    startPulse();
+    btn.textContent = "🔊 音を OFF";
   } else {
     btn.classList.remove("on");
-    btn.textContent = "🔇 音を ON";   // 押すと ON になるよ
+    btn.textContent = "🔇 音を ON";
     stopPulse();
   }
+}
+
+// 音が出ない人向けの案内バナー
+function showSoundBanner() {
+  const old = document.getElementById("soundBanner");
+  if (old) old.remove();
+  const banner = document.createElement("div");
+  banner.id = "soundBanner";
+  banner.style.cssText = "position:fixed;top:50px;right:10px;background:#fff3cd;color:#856404;border:2px solid #ffc107;border-radius:12px;padding:10px 14px;font-size:12px;max-width:280px;z-index:99;box-shadow:0 4px 12px rgba(0,0,0,0.15);line-height:1.5;font-weight:600;";
+  banner.innerHTML = `
+    🔊 音は聞こえた?<br>
+    <span style="font-weight:400;font-size:11px;">聞こえない場合:<br>
+    ・iPhone 側面の <b>サイレントスイッチ を OFF</b> に(オレンジが見えないように)<br>
+    ・音量ボタンを上げる<br>
+    ・「音を ON」をもう一度タップ</span>
+    <button onclick="document.getElementById('soundBanner').remove()" style="background:#ffc107;color:white;border:none;padding:4px 10px;border-radius:6px;font-size:11px;margin-top:6px;cursor:pointer;font-weight:700;">聞こえた ✓</button>
+  `;
+  document.body.appendChild(banner);
+  // 15 秒後に自動で消える
+  setTimeout(() => { const b = document.getElementById("soundBanner"); if (b) b.remove(); }, 15000);
 }
 
 // ==============================================================
