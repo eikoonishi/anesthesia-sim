@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今日のスーパーバイザー — 6つの手術室を守れ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #f0f6fb;
+    color: #1a2b45;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition: background 2s, color 2s;
+  }
+  body.serious { background: #0a1220; color: #e0e6ef; }
+  .app { max-width: 900px; margin: 0 auto; padding: 12px; padding-bottom: 40px; }
+
+  /* ==== Header ==== */
+  .header {
+    background: linear-gradient(135deg, #1a4d8f 0%, #2a6bb8 100%);
+    color: white;
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .header-title { flex: 1; }
+  .header-title h1 { font-size: 18px; font-weight: 700; }
+  .header-title .sub { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .header-clock { font-size: 15px; font-family: monospace; background: rgba(0,0,0,0.25); padding: 6px 12px; border-radius: 6px; }
+
+  /* ==== Room map ==== */
+  .roommap {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .room-cell {
+    background: white;
+    border: 2px solid #d0dbe8;
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    font-size: 12px;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .room-cell .room-no { font-weight: 700; font-size: 14px; color: #1a4d8f; }
+  .room-cell .room-status { font-size: 18px; margin-top: 4px; }
+  .room-cell.stable { border-color: #6bcf99; background: #e8f8ef; }
+  .room-cell.active { border-color: #f5a623; background: #fff5e0; animation: pulseActive 1s infinite; }
+  .room-cell.emergency { border-color: #e74c3c; background: #ffe5e0; animation: pulseEmerg 0.6s infinite; }
+  .room-cell.done { border-color: #6bcf99; background: #a8e6c1; opacity: 0.7; }
+  @keyframes pulseActive { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+  @keyframes pulseEmerg {
+    0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.6); transform: scale(1); }
+    50% { box-shadow: 0 0 0 6px rgba(231,76,60,0); transform: scale(1.05); }
+  }
+
+  /* ==== Emergency call card ==== */
+  .call-card {
+    background: linear-gradient(135deg, #c0392b 0%, #8e2018 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 14px;
+    animation: shake 0.5s 2, callPulse 1.2s infinite;
+    box-shadow: 0 4px 16px rgba(192,57,43,0.4);
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  @keyframes callPulse {
+    0%,100% { box-shadow: 0 4px 16px rgba(192,57,43,0.4); }
+    50% { box-shadow: 0 4px 24px rgba(192,57,43,0.8); }
+  }
+  .call-icon { font-size: 32px; }
+  .call-text .t1 { font-size: 16px; font-weight: 700; }
+  .call-text .t2 { font-size: 13px; opacity: 0.95; margin-top: 4px; }
+
+  /* ==== Patient card ==== */
+  .patient-card {
+    background: white;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .patient-avatar { font-size: 40px; flex-shrink: 0; }
+  .patient-info { flex: 1; }
+  .patient-info .name { font-size: 16px; font-weight: 700; color: #1a4d8f; }
+  .patient-info .detail { font-size: 13px; color: #567; margin-top: 4px; }
+  .patient-info .surgery { font-size: 12px; color: #789; margin-top: 2px; font-style: italic; }
+
+  /* ==== Monitor(既存の real look) ==== */
+  .monitor {
+    background: #000;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 3px 10px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .label-cell {
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 2px 0;
+  }
+  .label-cell .name { font-size: 10px; opacity: 0.7; letter-spacing: 0.5px; font-weight: 600; }
+  .label-cell .unit { font-size: 9px; opacity: 0.5; margin-top: 1px; }
+  .label-cell .value {
+    font-size: 26px; font-weight: 700;
+    font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
+    line-height: 1; margin-top: 3px;
+    transition: color 0.3s;
+  }
+  .label-cell .sub { font-size: 12px; opacity: 0.85; line-height: 1; margin-top: 2px; }
+  .value.low { color: #ff4d4d; animation: pulseLow 1s infinite; }
+  .value.warn { color: #ffd93d; }
+  .value.hot { color: #ff4500; animation: pulseLow 0.7s infinite; }
+  @keyframes pulseLow { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .v-hr    { color: #00ff66; }
+  .v-bp    { color: #ff7ab8; }
+  .v-spo2  { color: #00d4ff; }
+  .v-co2   { color: #ffffff; }
+  .v-bis   { color: #ff9933; }
+  .v-temp  { color: #ffcc00; }
+  .wave-cell {
+    height: 44px;
+    background: #000;
+    overflow: hidden;
+  }
+  .wave-cell.empty { background: #000; }
+  .wave-cell canvas { display: block; width: 100%; height: 100%; }
+
+  /* ==== Choice buttons ==== */
+  .choices {
+    display: flex; flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .choice-btn {
+    background: white;
+    border: 3px solid #d0dbe8;
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a2b45;
+    text-align: left;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 14px;
+    transition: all 0.15s;
+    font-family: inherit;
+    min-height: 60px;
+  }
+  .choice-btn:hover {
+    border-color: #2a6bb8;
+    background: #eef5ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(42,107,184,0.2);
+  }
+  .choice-btn:active { transform: translateY(0); }
+  .choice-btn:disabled { pointer-events: none; opacity: 0.5; }
+  .choice-btn.correct { border-color: #27ae60; background: #d4f4dd; color: #1e8449; animation: correctFlash 0.5s; }
+  .choice-btn.wrong { border-color: #e74c3c; background: #ffe0dc; color: #c0392b; animation: wrongShake 0.4s; }
+  @keyframes correctFlash {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+  @keyframes wrongShake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  .choice-btn .icon { font-size: 24px; flex-shrink: 0; }
+  .choice-btn .label { flex: 1; line-height: 1.4; }
+
+  /* ==== Feedback overlay ==== */
+  .feedback {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    animation: fadeIn 0.3s;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .feedback.correct { border-left: 6px solid #27ae60; background: linear-gradient(to right, #e8f8ef 0%, white 100%); }
+  .feedback.wrong { border-left: 6px solid #e74c3c; background: linear-gradient(to right, #ffe5e0 0%, white 100%); }
+  .feedback-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .feedback.correct .feedback-title { color: #1e8449; }
+  .feedback.wrong .feedback-title { color: #c0392b; }
+  .feedback-body { font-size: 14px; line-height: 1.7; color: #345; }
+  .feedback-body b { color: #1a4d8f; }
+  .next-btn {
+    background: linear-gradient(135deg, #1a4d8f, #2a6bb8);
+    color: white; border: none;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 16px; font-weight: 700;
+    cursor: pointer;
+    margin-top: 14px;
+    font-family: inherit;
+    width: 100%;
+  }
+  .next-btn:hover { background: linear-gradient(135deg, #143c72, #1e5497); }
+
+  /* ==== Opening / Ending ==== */
+  .opening, .ending {
+    background: white;
+    border-radius: 14px;
+    padding: 28px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  .opening h1 { font-size: 28px; color: #1a4d8f; margin-bottom: 14px; }
+  .opening .lead { font-size: 15px; line-height: 1.8; color: #345; margin-bottom: 20px; }
+  .opening .role-card {
+    background: #eef5ff;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 16px 0;
+    text-align: left;
+  }
+  .opening .role-card h3 { color: #1a4d8f; font-size: 14px; margin-bottom: 6px; }
+  .opening .role-card p { font-size: 13px; color: #345; }
+  .start-btn {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white; border: none;
+    padding: 18px 40px;
+    border-radius: 12px;
+    font-size: 18px; font-weight: 700;
+    cursor: pointer;
+    margin-top: 14px;
+    font-family: inherit;
+    box-shadow: 0 4px 12px rgba(231,76,60,0.3);
+  }
+  .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(231,76,60,0.4); }
+
+  /* ==== Sound toggle ==== */
+  .sound-toggle {
+    position: fixed; top: 12px; right: 12px;
+    background: rgba(255,255,255,0.9);
+    border: 2px solid #1a4d8f;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 13px; font-weight: 600;
+    color: #1a4d8f;
+    cursor: pointer;
+    z-index: 100;
+    font-family: inherit;
+  }
+  .sound-toggle.on { background: #1a4d8f; color: white; }
+  .sound-toggle:hover { transform: scale(1.05); }
+
+  /* ==== Serious ending ==== */
+  .serious-container {
+    text-align: center;
+    padding: 60px 20px;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    color: #e0e6ef;
+    opacity: 0;
+    animation: seriousIn 3s forwards;
+  }
+  @keyframes seriousIn { to { opacity: 1; } }
+  .serious-monitor {
+    max-width: 400px; margin: 30px auto;
+    background: #000;
+    border-radius: 8px;
+    padding: 10px;
+    opacity: 0.6;
+  }
+  .serious-monitor canvas { display: block; width: 100%; height: 40px; }
+  .serious-line {
+    font-size: 20px;
+    line-height: 2;
+    margin: 12px 0;
+    opacity: 0;
+    animation: serLine 1s forwards;
+  }
+  .serious-line.small { font-size: 16px; opacity: 0.8; }
+  .serious-line.big { font-size: 26px; font-weight: 700; color: #ffd93d; }
+  @keyframes serLine { to { opacity: 1; } }
+  .patient-story {
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 8px auto;
+    max-width: 500px;
+    text-align: left;
+    font-size: 14px;
+    opacity: 0;
+    animation: serLine 0.8s forwards;
+  }
+  .patient-story .avatar { font-size: 24px; margin-right: 8px; }
+  .replay-btn {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.4);
+    color: white;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 30px;
+    font-family: inherit;
+    opacity: 0;
+    animation: serLine 1s 20s forwards;
+  }
+  .replay-btn:hover { background: rgba(255,255,255,0.25); }
+
+  /* ==== Room transition ==== */
+  .transition-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    color: white;
+    font-size: 32px;
+    font-weight: 700;
+    animation: transIn 0.4s;
+  }
+  @keyframes transIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+</head>
+<body>
+<button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔇 音 OFF</button>
+<div class="app" id="app"></div>
+
+<script>
+// =====================================================
+// シナリオ定義(6部屋)
+// =====================================================
+const ROOMS = [
+  {
+    no: 1, name: "OR1",
+    avatar: "👨‍⚕️", patientName: "田中さん(60代男性)",
+    detail: "既往:高血圧・脂質異常症",
+    surgery: "腹腔鏡下 大腸切除術・術中",
+    vitals: { hr: 92, sbp: 105, dbp: 65, spo2: 97, etco2: 36, bis: 45, temp: 36.5 },
+    call: {
+      icon: "💢",
+      title: "OR1 から緊急コール!",
+      msg: "「先生!モニタに<b>ST変化</b>が出ています!心電図がおかしい!」"
+    },
+    question: "何をしますか?",
+    choices: [
+      {
+        icon: "🚨", text: "12誘導ECG + トロポニン採血 → 循環器科コール → 手術中止判断",
+        correct: true,
+        feedback: "<b>正解!</b>ST上昇型心筋梗塞(STEMI)を疑い、循環器科をコール。心エコーで壁運動異常を確認、<b>PCI(冠動脈治療)</b>のため手術中止・循環器へ引き継ぎ。腹部手術は落ち着いてから再度検討。",
+        vitalsAfter: { hr: 88, sbp: 108, dbp: 68 },
+        outcome: "PCIへ搬送、無事に冠動脈開通"
+      },
+      {
+        icon: "💨", text: "セボフルラン濃度を上げて麻酔を深くする",
+        correct: false,
+        feedback: "<b>危険!</b>心筋虚血中に麻酔を深めると循環抑制で虚血が悪化します。<b>まず ST 変化を精査</b>して原因を突き止めることが最優先。正解は循環器科コール。",
+        outcome: null
+      },
+      {
+        icon: "💧", text: "そのまま経過観察、腹部手術を優先で続行",
+        correct: false,
+        feedback: "<b>危険!</b>ST変化を見逃すと心筋梗塞が進行し致命的になります。<b>手術は一旦中止、循環器コール</b>が正解。命を守ることが最優先。",
+        outcome: null
+      }
+    ]
+  },
+  {
+    no: 2, name: "OR2",
+    avatar: "👩", patientName: "山田さん(40代女性)",
+    detail: "既往:なし・健康",
+    surgery: "腹腔鏡下 胆嚢摘出術・術中",
+    vitals: { hr: 90, sbp: 128, dbp: 78, spo2: 99, etco2: 36, bis: 45, temp: 38.4 },
+    call: {
+      icon: "🌡",
+      title: "OR2 から緊急コール!",
+      msg: "「先生!<b>体温が上がって 38.4℃</b>になっています!」"
+    },
+    question: "何をしますか?",
+    choices: [
+      {
+        icon: "❄️", text: "加温マットを OFF + 冷却輸液に変更 + 麻酔器の加湿器チェック",
+        correct: true,
+        feedback: "<b>正解!</b>加温マットで温めすぎたための<b>医原性の高体温</b>。設定を見直して冷却輸液に変えれば数分で体温が下がります。麻酔中は体温管理も麻酔科医の大事な仕事。",
+        vitalsAfter: { temp: 37.8 },
+        outcome: "体温 37.5℃に安定、無事に手術完了"
+      },
+      {
+        icon: "💊", text: "解熱剤(アセトアミノフェン)を投与",
+        correct: false,
+        feedback: "<b>惜しい!</b>解熱剤も効くけど、まずは<b>原因(加温マット過剰)を止める</b>のが基本。「原因を除く」が医療の基本です。",
+        outcome: null
+      },
+      {
+        icon: "⚠️", text: "悪性高熱症を疑ってダントロレンを準備",
+        correct: false,
+        feedback: "<b>惜しい!</b>悪性高熱症は <b>EtCO₂ 急上昇 + 筋強直</b> が必要な所見。本症例は EtCO₂ 正常なので<b>単純な加温過剰</b>。原因を止めるだけで済みます。",
+        outcome: null
+      }
+    ]
+  },
+  {
+    no: 3, name: "OR3",
+    avatar: "🧑", patientName: "鈴木さん(28歳男性)",
+    detail: "既往:なし・スポーツマン",
+    surgery: "整形外科 骨折内固定術・術中",
+    vitals: { hr: 0, sbp: 60, dbp: 30, spo2: 88, etco2: 12, bis: 45, temp: 36.5 },
+    call: {
+      icon: "⚡",
+      title: "OR3 から超緊急コール!",
+      msg: "「先生!!モニタが<b>VF(心室細動)</b>です!!<b>脈が触れません!</b>」"
+    },
+    question: "何をしますか?(1秒でも早く!)",
+    choices: [
+      {
+        icon: "⚡", text: "即座に CPR 開始 + DC(電気ショック)150J + 応援要請",
+        correct: true,
+        feedback: "<b>正解!</b>VF は<b>電気ショック(除細動)が第一選択</b>。1回のDCで洞調律に戻りました。命が助かった!術後精査で<b>ブルガダ症候群</b>と判明。若い健康な人でも突然死のリスクがある病気。",
+        vitalsAfter: { hr: 78, sbp: 110, dbp: 70, spo2: 98, etco2: 35 },
+        outcome: "DCで救命、術後は循環器科でブルガダ症候群と診断"
+      },
+      {
+        icon: "💉", text: "抗不整脈薬(アミオダロン)を静注",
+        correct: false,
+        feedback: "<b>危険!</b>VF では<b>薬より先に電気ショック</b>。数十秒の遅れが命取り。抗不整脈薬は DC で戻らない時の追加。",
+        outcome: null
+      },
+      {
+        icon: "🩺", text: "モニタが誤動作かも、もう一度確認",
+        correct: false,
+        feedback: "<b>危険!</b>脈が触れないなら本物の VF。<b>疑わしきは治療</b>が救急の鉄則。数秒の躊躇で脳の障害が始まります。",
+        outcome: null
+      }
+    ]
+  },
+  {
+    no: 4, name: "OR4",
+    avatar: "👵", patientName: "佐藤さん(72歳女性)",
+    detail: "既往:高血圧・軽度不安障害",
+    surgery: "眼科 白内障手術・局所麻酔+鎮静中",
+    vitals: { hr: 95, sbp: 190, dbp: 110, spo2: 98, etco2: 38, bis: 82, temp: 36.6 },
+    call: {
+      icon: "😰",
+      title: "OR4 からコール",
+      msg: "「先生、血圧が<b>190/110</b>まで上がっています。患者さんも『怖い、怖い』と…」"
+    },
+    question: "何をしますか?",
+    choices: [
+      {
+        icon: "💤", text: "追加の鎮静剤(ミダゾラム 少量)+ 声かけて安心してもらう",
+        correct: true,
+        feedback: "<b>正解!</b>眼科手術は<b>意識がある状態</b>。「見えないから怖い」「動いちゃダメ」というストレスで血圧が上がる。まず<b>患者さんの気持ち</b>に寄り添い、少量の鎮静剤でリラックスしてもらえば血圧も下がる。麻酔科医は<b>心のケア</b>も仕事。",
+        vitalsAfter: { sbp: 138, dbp: 82, hr: 78, bis: 70 },
+        outcome: "鎮静と声かけで安心、手術完了。「先生、ありがとう」"
+      },
+      {
+        icon: "💊", text: "強い降圧薬をどんどん静注",
+        correct: false,
+        feedback: "<b>惜しい!</b>血圧は下がるけど、原因は緊張。<b>降圧薬だけだと患者さんの恐怖は消えない</b>し、下がりすぎるリスクもある。まず心のケア+少量の鎮静で十分。",
+        outcome: null
+      },
+      {
+        icon: "🚨", text: "手術を中止して患者を退室させる",
+        correct: false,
+        feedback: "<b>過剰対応!</b>白内障手術は 10 分で終わる。<b>患者さんも早く終わってほしい</b>。中止は最後の手段。まず落ち着かせる対応から。",
+        outcome: null
+      }
+    ]
+  },
+  {
+    no: 5, name: "OR5",
+    avatar: "👶", patientName: "ゆうくん(5歳男児)",
+    detail: "既往:健康・アレルギー既往なし",
+    surgery: "扁桃摘出術・全身麻酔導入直後",
+    vitals: { hr: 155, sbp: 62, dbp: 35, spo2: 92, etco2: 28, bis: 45, temp: 36.6 },
+    call: {
+      icon: "🆘",
+      title: "OR5 から緊急コール!!",
+      msg: "「先生!<b>筋弛緩薬(ロクロニウム)を入れた直後</b>に、顔と胸に<b>真っ赤な発疹</b>、<b>血圧が急降下</b>、<b>喘鳴</b>が!」"
+    },
+    question: "何をしますか?(小児です!)",
+    choices: [
+      {
+        icon: "💉", text: "アナフィラキシー疑い!投与中止 + <b>アドレナリン筋注(体重0.01mg/kg)</b> + 大量輸液 + 応援",
+        correct: true,
+        feedback: "<b>正解!</b>ロクロニウムは小児アナフィラキシーの原因薬剤としてもよく知られています。<b>アドレナリンが命綱</b>。小児は体重換算(0.01 mg/kg = 5歳なら約 0.2mg)。すぐ効いて血圧回復。手術は延期。<br>後日アレルギー検査で原因を特定、家族と学校に必ず伝える。",
+        vitalsAfter: { hr: 110, sbp: 95, dbp: 60, spo2: 98, etco2: 35 },
+        outcome: "アドレナリンで救命、後日再手術予定"
+      },
+      {
+        icon: "💨", text: "麻酔が効きすぎと判断、麻酔薬を減らす",
+        correct: false,
+        feedback: "<b>危険!</b>発疹+喘鳴+急激な血圧低下は<b>アナフィラキシーの三徴</b>。麻酔が原因ではない。<b>アドレナリンで数分以内</b>に対応しないと命に関わる。",
+        outcome: null
+      },
+      {
+        icon: "💧", text: "輸液だけ全開で入れて様子を見る",
+        correct: false,
+        feedback: "<b>不十分!</b>輸液は大事だけど、アナフィラキシーには<b>アドレナリンが第一選択</b>。輸液だけでは血圧は戻らず、時間の遅れが致命的。",
+        outcome: null
+      }
+    ]
+  },
+  {
+    no: 6, name: "OR6",
+    avatar: "🤱", patientName: "○○さん(32歳女性)",
+    detail: "初産・帝王切開直後",
+    surgery: "帝王切開術・分娩終了直後",
+    vitals: { hr: 128, sbp: 78, dbp: 45, spo2: 96, etco2: 32, bis: 45, temp: 36.4 },
+    call: {
+      icon: "🩸",
+      title: "OR6 から超緊急コール!!",
+      msg: "「先生!!赤ちゃんは無事です!でも<b>お母さんが子宮からの大量出血</b>!<b>すでに 3000 mL</b>!<b>意識が薄れています</b>!」"
+    },
+    question: "何をしますか?(お母さんの命+赤ちゃんが待ってる)",
+    choices: [
+      {
+        icon: "🩸", text: "<b>大量輸血</b>(RBC/FFP/PLT)+ <b>子宮収縮薬</b>(オキシトシン等)+ 太いライン追加 + 応援全員招集",
+        correct: true,
+        feedback: "<b>正解!</b>分娩後大量出血(PPH)の教科書対応。<b>①出血源の治療(子宮収縮薬)②輸血で循環維持③産科・輸血部・応援</b>を並行実施。子宮摘出は最終手段、まず薬剤で子宮を締める。<br>意識は戻り、翌日には赤ちゃんを抱ける状態に。「命が2つ助かった」瞬間。",
+        vitalsAfter: { hr: 92, sbp: 115, dbp: 72, spo2: 99 },
+        outcome: "大量輸血+子宮収縮薬で救命、無事に赤ちゃんと退院"
+      },
+      {
+        icon: "🩹", text: "止血ガーゼで圧迫、経過観察",
+        correct: false,
+        feedback: "<b>致命的!</b>子宮からの出血は圧迫では止まらない。<b>子宮収縮薬 + 輸血</b>が唯一の道。躊躇は死に直結。",
+        outcome: null
+      },
+      {
+        icon: "💊", text: "昇圧薬(ノルアドレナリン)で血圧維持のみ",
+        correct: false,
+        feedback: "<b>不十分!</b>出血が続いてる状況で昇圧薬だけでは血液がない状態で血管を締めるだけ。<b>まず輸血 + 止血</b>が絶対に必要。",
+        outcome: null
+      }
+    ]
+  }
+];
+
+// 最終エンディング(6患者の結末)
+const ENDINGS = [
+  { avatar: "👨‍⚕️", text: "OR1 田中さん、PCI で冠動脈が開通。心臓は元気に。ご家族と再会できました。" },
+  { avatar: "👩", text: "OR2 山田さん、体温も落ち着いて、無事に手術完了。夕方には笑顔で回復室へ。" },
+  { avatar: "🧑", text: "OR3 鈴木さん、DC で救命。ブルガダ症候群と判明し、退院後は循環器科でしっかりフォロー。また野球に戻れそうです。" },
+  { avatar: "👵", text: "OR4 佐藤さん、白内障の手術が終わり、翌日には「あら、こんなに世界がきれいだったのね」と。" },
+  { avatar: "👶", text: "OR5 ゆうくん、アナフィラキシーから救命。お母さんは泣いて喜んでいます。次の手術のときは薬を変えます。" },
+  { avatar: "🤱", text: "OR6 ○○さん、大量出血から救命。翌朝、赤ちゃんを胸に抱いて「ありがとう」と。命が 2 つ助かりました。" }
+];
+
+// =====================================================
+// 状態
+// =====================================================
+let state = {
+  currentIdx: 0,
+  completed: [],
+  correctCount: 0,
+  vitals: {},
+  soundOn: false,
+  startTime: null,
+  answered: false
+};
+
+let audioCtx = null;
+let pulseTimer = null;
+
+// =====================================================
+// 音(Web Audio API)
+// =====================================================
+function ensureAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch (e) {}
+}
+
+function playTone(freq, duration = 0.15, vol = 0.06, type = "sine") {
+  if (!state.soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    const now = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.start(now);
+    osc.stop(now + duration + 0.02);
+  } catch (e) {}
+}
+
+function playSequence(notes, gap = 0.1, vol = 0.08) {
+  if (!state.soundOn) return;
+  notes.forEach((n, i) => {
+    setTimeout(() => playTone(n.freq, n.dur || 0.15, vol, n.type || "sine"), i * gap * 1000);
+  });
+}
+
+function playAlert() { playSequence([{freq: 880, dur:0.1}, {freq:660, dur:0.1}, {freq:880, dur:0.1}], 0.12, 0.1); }
+function playCorrect() { playSequence([{freq: 523, dur:0.1}, {freq:659, dur:0.1}, {freq:784, dur:0.2}], 0.1, 0.1); }
+function playWrong() { playSequence([{freq: 330, dur:0.15}, {freq:220, dur:0.3}], 0.15, 0.09); }
+function playComplete() { playSequence([{freq: 523, dur:0.15}, {freq:659, dur:0.15}, {freq:784, dur:0.15}, {freq:1047, dur:0.4}], 0.15, 0.1); }
+
+// SpO2連動 心拍音
+function mapSpo2ToFreq(spo2) {
+  const c = Math.max(60, Math.min(100, spo2 || 98));
+  return 880 * Math.pow(2, (c - 100) / 20);
+}
+function playPulseBeep() {
+  if (!state.soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  try {
+    const spo2 = state.vitals.spo2 || 98;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = "sine";
+    osc.frequency.value = mapSpo2ToFreq(spo2);
+    const now = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.04, now + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } catch (e) {}
+}
+function startPulse() {
+  stopPulse();
+  if (!state.soundOn) return;
+  function tick() {
+    if (!state.soundOn) return;
+    const hr = state.vitals.hr || 78;
+    if (hr > 0) playPulseBeep();
+    pulseTimer = setTimeout(tick, hr > 30 ? 60000 / hr : 1000);
+  }
+  tick();
+}
+function stopPulse() { if (pulseTimer) { clearTimeout(pulseTimer); pulseTimer = null; } }
+
+function toggleSound() {
+  state.soundOn = !state.soundOn;
+  const btn = document.getElementById("soundToggle");
+  if (state.soundOn) {
+    ensureAudio();
+    btn.classList.add("on");
+    btn.textContent = "🔊 音 ON";
+    startPulse();
+  } else {
+    btn.classList.remove("on");
+    btn.textContent = "🔇 音 OFF";
+    stopPulse();
+  }
+}
+
+// =====================================================
+// 波形描画(既存 chat.html から流用)
+// =====================================================
+function ecgVal(phase) {
+  if (phase < 0.10) return 0;
+  if (phase < 0.16) { const x = (phase - 0.10) / 0.06; return Math.sin(x * Math.PI) * 0.15; }
+  if (phase < 0.22) return 0;
+  if (phase < 0.235) return -((phase - 0.22) / 0.015) * 0.15;
+  if (phase < 0.250) return -0.15 + ((phase - 0.235) / 0.015) * 1.25;
+  if (phase < 0.270) return 1.10 - ((phase - 0.250) / 0.020) * 1.55;
+  if (phase < 0.290) return -0.45 + ((phase - 0.270) / 0.020) * 0.45;
+  if (phase < 0.42) return 0;
+  if (phase < 0.58) { const x = (phase - 0.42) / 0.16; return Math.sin(x * Math.PI) * 0.28; }
+  return 0;
+}
+// VF: 不規則ノイズ波形
+function ecgVFVal(t) {
+  return (Math.sin(t * 2 * Math.PI * 6) * 0.3 + Math.sin(t * 2 * Math.PI * 13 + 1.3) * 0.4 + (Math.random() - 0.5) * 0.3) * 0.6;
+}
+// ST上昇型 ECG(P-QRS-T with ST elevation)
+function ecgSTVal(phase) {
+  const base = ecgVal(phase);
+  // ST portion (0.29-0.42) elevated
+  if (phase >= 0.29 && phase < 0.42) return base + 0.20;
+  return base;
+}
+function plethVal(phase, amp) {
+  if (phase < 0.18) return Math.sin((phase / 0.18) * Math.PI / 2) * amp;
+  if (phase < 0.32) { const x = (phase - 0.18) / 0.14; return amp * (1.0 - x * 0.40); }
+  if (phase < 0.40) { const x = (phase - 0.32) / 0.08; return amp * (0.60 - x * 0.18); }
+  if (phase < 0.85) { const x = (phase - 0.40) / 0.45; return amp * 0.42 * (1.0 - x); }
+  return 0;
+}
+function capnoVal(phase, et) {
+  if (typeof et !== "number") return 0;
+  const norm = et / 50;
+  if (phase < 0.30) return 0;
+  if (phase < 0.33) return ((phase - 0.30) / 0.03) * norm;
+  if (phase < 0.92) return norm + ((phase - 0.33) / 0.59) * 0.04 * norm;
+  if (phase < 0.95) return norm * 1.04 * (1.0 - (phase - 0.92) / 0.03);
+  return 0;
+}
+function eegVal(t, bis) {
+  if (typeof bis !== "number") bis = 45;
+  let domFreq;
+  if (bis < 40) domFreq = 0.8 + (bis / 40) * 2.5;
+  else if (bis < 60) domFreq = 3.3 + ((bis - 40) / 20) * 3.5;
+  else if (bis < 80) domFreq = 6.8 + ((bis - 60) / 20) * 5;
+  else domFreq = 11.8 + ((bis - 80) / 20) * 13;
+  let amp;
+  if (bis < 50) amp = 0.65 - (50 - bis) * 0.008;
+  else if (bis < 75) amp = 0.55 - (bis - 50) * 0.010;
+  else amp = 0.30 - (bis - 75) * 0.005;
+  amp = Math.max(0.10, amp);
+  let v = 0;
+  v += Math.sin(t * 2 * Math.PI * domFreq) * amp;
+  v += Math.sin(t * 2 * Math.PI * domFreq * 1.7 + 1.3) * amp * 0.4;
+  v += Math.sin(t * 2 * Math.PI * domFreq * 0.6 + 2.1) * amp * 0.35;
+  return v;
+}
+
+const SPEED_FAST = 80;
+const SPEED_SLOW = 32;
+const waves = { ecg: null, pleth: null, capno: null, eeg: null };
+let animationFrameId = null;
+
+function setupCanvas(id) {
+  const c = document.getElementById(id);
+  if (!c) return null;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  const w = rect.width || 400;
+  const h = rect.height || 44;
+  c.width = w * dpr;
+  c.height = h * dpr;
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+  return { canvas: c, ctx, w, h, x: 0, lastY: h/2, timeAcc: 0, lastTime: performance.now(), justWrapped: true };
+}
+function drawWave(s, color, valueFn, period, speed) {
+  if (!s) return;
+  const now = performance.now();
+  let dt = (now - s.lastTime) / 1000;
+  s.lastTime = now;
+  if (dt > 0.5) { s.timeAcc += dt; return; }
+  s.timeAcc += dt;
+  const advance = speed * dt;
+  const newX = s.x + advance;
+  const phase = (s.timeAcc % period) / period;
+  const value = valueFn(phase, s.timeAcc);
+  const newY = s.h/2 - value * (s.h * 0.38);
+  s.ctx.clearRect(newX, 0, 20, s.h);
+  if (!s.justWrapped) {
+    s.ctx.strokeStyle = color;
+    s.ctx.lineWidth = 1.4;
+    s.ctx.beginPath();
+    s.ctx.moveTo(s.x, s.lastY);
+    s.ctx.lineTo(newX, newY);
+    s.ctx.stroke();
+  }
+  s.lastY = newY; s.x = newX; s.justWrapped = false;
+  if (s.x >= s.w) { s.x = 0; s.justWrapped = true; s.ctx.clearRect(0, 0, 20, s.h); }
+}
+function drawEEG(s, bis) {
+  if (!s) return;
+  const now = performance.now();
+  let dt = (now - s.lastTime) / 1000;
+  s.lastTime = now;
+  if (dt > 0.5) { s.timeAcc += dt; return; }
+  s.timeAcc += dt;
+  const advance = SPEED_FAST * dt;
+  const newX = s.x + advance;
+  const value = eegVal(s.timeAcc, bis);
+  const newY = s.h/2 - value * (s.h * 0.25);
+  s.ctx.clearRect(newX, 0, 20, s.h);
+  if (!s.justWrapped) {
+    s.ctx.strokeStyle = "#ff9933";
+    s.ctx.lineWidth = 1.3;
+    s.ctx.beginPath();
+    s.ctx.moveTo(s.x, s.lastY);
+    s.ctx.lineTo(newX, newY);
+    s.ctx.stroke();
+  }
+  s.lastY = newY; s.x = newX; s.justWrapped = false;
+  if (s.x >= s.w) { s.x = 0; s.justWrapped = true; s.ctx.clearRect(0, 0, 20, s.h); }
+}
+function reinitCanvases() {
+  waves.ecg = setupCanvas("ecg");
+  waves.pleth = setupCanvas("pleth");
+  waves.capno = setupCanvas("capno");
+  waves.eeg = setupCanvas("eeg");
+}
+function waveLoop() {
+  const v = state.vitals || {};
+  if (waves.ecg && v.hr > 0) {
+    const p = 60 / v.hr;
+    const room = ROOMS[state.currentIdx];
+    // OR3 の VF (hr=0でも別扱い) or OR1 の ST変化
+    let ecgFn = ecgVal;
+    if (room && room.no === 3 && !state.answered) ecgFn = (ph, t) => ecgVFVal(t);
+    else if (room && room.no === 1 && !state.answered) ecgFn = ecgSTVal;
+    drawWave(waves.ecg, "#00ff66", ecgFn, p, SPEED_FAST);
+    const pp = Math.min(1.0, Math.max(0.2, ((v.sbp || 120) - (v.dbp || 70)) / 50));
+    drawWave(waves.pleth, "#00d4ff", (ph) => plethVal(ph, pp), p, SPEED_FAST);
+  } else if (waves.ecg && v.hr === 0) {
+    // VF状態(HR 0 表示、波形はVF)
+    drawWave(waves.ecg, "#00ff66", (ph, t) => ecgVFVal(t), 1, SPEED_FAST);
+  }
+  if (waves.capno && typeof v.etco2 === "number" && v.etco2 > 0) {
+    drawWave(waves.capno, "#ffffff", (ph) => capnoVal(ph, v.etco2), 5, SPEED_SLOW);
+  }
+  if (waves.eeg && typeof v.bis === "number") {
+    drawEEG(waves.eeg, v.bis);
+  }
+  animationFrameId = requestAnimationFrame(waveLoop);
+}
+
+// =====================================================
+// レンダリング
+// =====================================================
+function render(html) {
+  document.getElementById("app").innerHTML = html;
+}
+
+function renderOpening() {
+  render(`
+    <div class="opening">
+      <h1>🏥 今日のスーパーバイザー</h1>
+      <div class="lead">
+        あなたは今日、<b>6つの手術室を見守る麻酔科医のリーダー</b>です。<br>
+        6人の患者さん、40人以上のスタッフ、大切な家族が待っています。
+      </div>
+      <div class="role-card">
+        <h3>🧑‍⚕️ 麻酔科医の仕事って?</h3>
+        <p>手術中の患者さんの<b>心臓・呼吸・体温・血圧・意識</b>を、患者さんに代わって守る仕事。モニタを見ながら、異常があればすぐ対応。命の重さを毎日背負う仕事です。</p>
+      </div>
+      <div class="role-card">
+        <h3>📋 ゲームの流れ</h3>
+        <p>次々と手術室から緊急コールが入ります。モニタを見て、正しい対応を選んでください。<b>6部屋すべてを守り抜けばコンプリート!</b></p>
+      </div>
+      <div class="role-card">
+        <h3>🔊 音について</h3>
+        <p>右上の「音」ボタンで、心拍音・アラート音を ON にできます。会場の音を出せるなら ON がおすすめ(臨場感UP)。</p>
+      </div>
+      <button class="start-btn" onclick="startGame()">▶ 手術室に入る</button>
+    </div>
+  `);
+  if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+}
+
+function renderHeader() {
+  const roomsHtml = ROOMS.map((r, i) => {
+    let cls = "";
+    if (i < state.currentIdx) cls = "done";
+    else if (i === state.currentIdx) cls = state.answered ? "active" : "emergency";
+    else cls = "stable";
+    let statusIcon = "";
+    if (cls === "done") statusIcon = "✅";
+    else if (cls === "emergency") statusIcon = "🔴";
+    else if (cls === "active") statusIcon = "🟡";
+    else statusIcon = "🟢";
+    return `<div class="room-cell ${cls}">
+      <div class="room-no">${r.name}</div>
+      <div class="room-status">${statusIcon}</div>
+    </div>`;
+  }).join("");
+  const elapsed = state.startTime ? Math.floor((Date.now() - state.startTime) / 1000) : 0;
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+  const clock = `${m}:${String(s).padStart(2, "0")}`;
+  return `
+    <div class="header">
+      <div class="header-title">
+        <h1>🏥 本日の手術室(6部屋)</h1>
+        <div class="sub">進行:${state.completed.length}/6 部屋クリア  |  正解 ${state.correctCount}/${state.completed.length || 0}</div>
+      </div>
+      <div class="header-clock">⏱ ${clock}</div>
+    </div>
+    <div class="roommap">${roomsHtml}</div>
+  `;
+}
+
+function renderRoom(idx) {
+  const room = ROOMS[idx];
+  state.currentIdx = idx;
+  state.answered = false;
+  state.vitals = { ...room.vitals };
+  const monitorHtml = renderMonitor();
+  const html = renderHeader() + `
+    <div class="call-card">
+      <div class="call-icon">${room.call.icon}</div>
+      <div class="call-text">
+        <div class="t1">${room.call.title}</div>
+        <div class="t2">${room.call.msg}</div>
+      </div>
+    </div>
+    <div class="patient-card">
+      <div class="patient-avatar">${room.avatar}</div>
+      <div class="patient-info">
+        <div class="name">${room.patientName}</div>
+        <div class="detail">${room.detail}</div>
+        <div class="surgery">${room.surgery}</div>
+      </div>
+    </div>
+    ${monitorHtml}
+    <div style="font-size:17px; font-weight:700; margin: 14px 0 10px; color: #1a4d8f;">
+      ${room.question}
+    </div>
+    <div class="choices" id="choices">
+      ${room.choices.map((c, i) => `
+        <button class="choice-btn" onclick="selectChoice(${i})">
+          <span class="icon">${c.icon}</span>
+          <span class="label">${c.label || c.text}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+  render(html);
+  requestAnimationFrame(() => {
+    reinitCanvases();
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    animationFrameId = requestAnimationFrame(waveLoop);
+  });
+  playAlert();
+}
+
+function renderMonitor() {
+  const v = state.vitals;
+  const sbpCls = v.sbp < 80 ? "low" : (v.sbp < 100 ? "warn" : (v.sbp > 180 ? "hot" : ""));
+  const hrCls = (v.hr === 0) ? "low" : (v.hr > 140 ? "hot" : (v.hr > 120 || v.hr < 50 ? "warn" : ""));
+  const spo2Cls = v.spo2 < 92 ? "low" : (v.spo2 < 96 ? "warn" : "");
+  const tempCls = v.temp >= 38 ? "hot" : (v.temp >= 37.5 ? "warn" : "");
+  const map = (typeof v.sbp === "number" && typeof v.dbp === "number") ? Math.round((v.sbp + 2 * v.dbp) / 3) : "—";
+  return `
+    <div class="monitor" id="monitor">
+      <div class="label-cell">
+        <span class="name v-hr">HR</span><span class="unit">(bpm)</span>
+        <span class="value v-hr ${hrCls}">${v.hr}</span>
+      </div>
+      <div class="wave-cell"><canvas id="ecg"></canvas></div>
+
+      <div class="label-cell">
+        <span class="name v-bp">NIBP</span><span class="unit">SYS/DIA</span>
+        <span class="value v-bp ${sbpCls}">${v.sbp}/${v.dbp}</span>
+        <span class="sub v-bp">(${map})</span>
+      </div>
+      <div class="wave-cell empty"></div>
+
+      <div class="label-cell">
+        <span class="name v-spo2">SpO₂</span><span class="unit">(%)</span>
+        <span class="value v-spo2 ${spo2Cls}">${v.spo2}</span>
+      </div>
+      <div class="wave-cell"><canvas id="pleth"></canvas></div>
+
+      <div class="label-cell">
+        <span class="name v-co2">EtCO₂</span><span class="unit">(mmHg)</span>
+        <span class="value v-co2">${v.etco2}</span>
+      </div>
+      <div class="wave-cell"><canvas id="capno"></canvas></div>
+
+      <div class="label-cell">
+        <span class="name v-bis">BIS</span><span class="unit">(0-100)</span>
+        <span class="value v-bis">${v.bis}</span>
+      </div>
+      <div class="wave-cell"><canvas id="eeg"></canvas></div>
+
+      <div class="label-cell">
+        <span class="name v-temp">体温</span><span class="unit">(℃)</span>
+        <span class="value v-temp ${tempCls}">${v.temp}</span>
+      </div>
+      <div class="wave-cell empty"></div>
+    </div>
+  `;
+}
+
+function selectChoice(idx) {
+  if (state.answered) return;
+  state.answered = true;
+  const room = ROOMS[state.currentIdx];
+  const choice = room.choices[idx];
+  const btns = document.querySelectorAll(".choice-btn");
+  btns.forEach((b, i) => {
+    b.disabled = true;
+    if (i === idx) b.classList.add(choice.correct ? "correct" : "wrong");
+    else if (room.choices[i].correct) setTimeout(() => b.classList.add("correct"), 500);
+  });
+  if (choice.correct) {
+    playCorrect();
+    if (choice.vitalsAfter) {
+      state.vitals = { ...state.vitals, ...choice.vitalsAfter };
+      // update monitor numbers
+      setTimeout(() => {
+        const m = document.getElementById("monitor");
+        if (m) m.outerHTML = renderMonitor();
+        reinitCanvases();
+      }, 400);
+    }
+  } else {
+    playWrong();
+  }
+  // フィードバック表示
+  setTimeout(() => {
+    const feedbackHtml = `
+      <div class="feedback ${choice.correct ? 'correct' : 'wrong'}">
+        <div class="feedback-title">${choice.correct ? '✅ 正解!' : '❌ この選択は…'}</div>
+        <div class="feedback-body">${choice.feedback}</div>
+        ${choice.correct && choice.outcome ? `<div class="feedback-body" style="margin-top:10px;"><b>👉 結末:</b> ${choice.outcome}</div>` : ''}
+        <button class="next-btn" onclick="afterChoice(${choice.correct ? 'true' : 'false'})">
+          ${choice.correct ? (state.currentIdx < 5 ? '次の手術室へ →' : '手術室完全制覇!') : 'もう一度考える'}
+        </button>
+      </div>
+    `;
+    document.getElementById("choices").insertAdjacentHTML("afterend", feedbackHtml);
+    document.getElementById("choices").style.display = "none";
+    document.querySelector(".feedback").scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 800);
+}
+
+function afterChoice(wasCorrect) {
+  if (wasCorrect) {
+    state.completed.push(state.currentIdx);
+    state.correctCount++;
+    if (state.currentIdx < 5) {
+      showTransition(`OR${state.currentIdx + 2} へ急行!`, () => {
+        renderRoom(state.currentIdx + 1);
+      });
+    } else {
+      // Complete!
+      playComplete();
+      renderCompletion();
+    }
+  } else {
+    // やり直し(同じ部屋)
+    state.answered = false;
+    renderRoom(state.currentIdx);
+  }
+}
+
+function showTransition(msg, callback) {
+  const overlay = document.createElement("div");
+  overlay.className = "transition-overlay";
+  overlay.textContent = msg;
+  document.body.appendChild(overlay);
+  setTimeout(() => {
+    overlay.remove();
+    callback();
+  }, 1200);
+}
+
+function renderCompletion() {
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+  render(`
+    <div class="opening">
+      <h1>🎉 全 6 部屋 手術完了!</h1>
+      <div class="lead">
+        <b>本日の勤務、お疲れさまでした。</b><br><br>
+        6 人の患者さん、全員が無事に手術室から出ました。<br>
+        経過時間 ${m}分${s}秒 / 正解 ${state.correctCount}/6
+      </div>
+      <div class="role-card">
+        <p style="text-align:center; font-size:15px;">
+          このあと、患者さんたちの<b>結末</b>をお見せします。<br>
+          少し時間をとって、静かに読んでみてください。
+        </p>
+      </div>
+      <button class="start-btn" onclick="renderSerious()">➤ 患者さんたちの その後 を見る</button>
+    </div>
+  `);
+}
+
+// =====================================================
+// シリアスエンディング
+// =====================================================
+function renderSerious() {
+  stopPulse();
+  if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+  document.body.classList.add("serious");
+  // Header などを消してシリアスモードに
+  document.getElementById("app").innerHTML = "";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("soundToggle").style.display = "none";
+
+  const container = document.createElement("div");
+  container.className = "serious-container";
+  container.id = "seriousContainer";
+  document.body.appendChild(container);
+
+  const lines = [];
+  // 冒頭
+  lines.push({ delay: 0, cls: "small", text: "手術室 6 部屋、全員の患者さんが無事に手術を終えました。" });
+  lines.push({ delay: 2000, cls: "small", text: "その後の物語です。" });
+  // 各患者の結末(1人ずつ)
+  ENDINGS.forEach((e, i) => {
+    lines.push({
+      delay: 4500 + i * 3500,
+      cls: "story",
+      text: `<span class="avatar">${e.avatar}</span>${e.text}`
+    });
+  });
+  const afterStories = 4500 + ENDINGS.length * 3500 + 2000;
+  // シリアスメッセージ
+  lines.push({ delay: afterStories, cls: "big", text: "今日、あなたは 6 人の命を守りました。" });
+  lines.push({ delay: afterStories + 4000, cls: "", text: "毎日、日本のどこかの手術室で" });
+  lines.push({ delay: afterStories + 5500, cls: "", text: "こうしている 麻酔科医 がいます。" });
+  lines.push({ delay: afterStories + 8000, cls: "small", text: "名前を知られることは、あまりありません。" });
+  lines.push({ delay: afterStories + 10500, cls: "", text: "でも、その一人が" });
+  lines.push({ delay: afterStories + 12000, cls: "", text: "あなたの家族の手術を支える日が、来るかもしれません。" });
+  lines.push({ delay: afterStories + 15500, cls: "big", text: "命を預かる仕事は、こんなに重くて、こんなに美しい。" });
+  lines.push({ delay: afterStories + 19000, cls: "", text: "もし将来、医療を志すなら" });
+  lines.push({ delay: afterStories + 20500, cls: "", text: "手術室で待っています。" });
+
+  lines.forEach(line => {
+    setTimeout(() => {
+      const el = document.createElement("div");
+      if (line.cls === "story") {
+        el.className = "patient-story";
+      } else {
+        el.className = "serious-line " + line.cls;
+      }
+      el.innerHTML = line.text;
+      container.appendChild(el);
+    }, line.delay);
+  });
+
+  // Replay ボタン
+  setTimeout(() => {
+    const btn = document.createElement("button");
+    btn.className = "replay-btn";
+    btn.textContent = "🔁 もう一度プレイする";
+    btn.onclick = () => location.reload();
+    btn.style.opacity = "1";
+    btn.style.animation = "none";
+    container.appendChild(btn);
+  }, afterStories + 24000);
+}
+
+// =====================================================
+// ゲーム開始
+// =====================================================
+function startGame() {
+  state.startTime = Date.now();
+  state.currentIdx = 0;
+  state.completed = [];
+  state.correctCount = 0;
+  renderRoom(0);
+}
+
+// 初期化
+renderOpening();
+</script>
+</body>
+</html>
