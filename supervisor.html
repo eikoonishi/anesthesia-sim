@@ -428,7 +428,7 @@ const ROOMS = [
           { text: "抗菌薬アレルギー", icon: "💉", correct: false }
         ],
         correctTitle: "正解! 🔥",
-        correctBody: "<b>悪性高熱症(MH)</b>!<br>これは <b>揮発性麻酔薬(セボフルラン)</b> がトリガーで、筋肉が過剰に収縮してしまう病気。<br>→ 体温↑↑・二酸化炭素↑↑・<b>筋肉が壊れる(=赤褐色のミオグロビン尿)</b>・カリウム↑(壊れた筋肉から漏れる)。<br>常染色体顕性遺伝で、<b>初めての麻酔で発症</b>することが多い。",
+        correctBody: "<b>悪性高熱症(MH)</b>!<br>これは <b>揮発性麻酔薬(セボフルラン)</b> がトリガーで、筋肉が過剰に収縮してしまう<b>遺伝性の病気</b>です。<br>→ 体温↑↑・二酸化炭素↑↑・<b>筋肉が壊れる(=赤褐色のミオグロビン尿)</b>・カリウム↑(壊れた筋肉から漏れる)。<br><b>初めての麻酔で発症</b>することが多い。",
         wrongTitle: "実は…",
         wrongBody: "正解は <b>悪性高熱症(MH)</b>。<br>加温過剰やアレルギーでは、<b>赤褐色の尿(筋肉が壊れた証拠)</b> と <b>高K血症</b> は起きない。<br>体温↑↑ + EtCO₂↑↑ + 筋肉壊死 = MH の典型的な組み合わせ。"
       },
@@ -440,21 +440,24 @@ const ROOMS = [
           { text: "手術のスピードを上げてもらう", icon: "⚡", correct: false }
         ],
         correctTitle: "正解! ✅",
-        correctBody: "まず <b>トリガー(セボフルラン)を止める</b> のが第一。<br>点滴の麻酔(プロポフォールなど)に切り替えて、100% 酸素で過換気しながら、次の対応へ進みます。",
+        correctBody: "まず <b>トリガー(セボフルラン)を止める</b> のが第一。原因を除くのが医療の基本です。",
         wrongTitle: "危険!",
-        wrongBody: "MH は数分で命に関わる。<br><b>まずトリガー(セボフルラン)を止める</b> のが正解。原因を除くのが医療の基本。"
+        wrongBody: "MH は数分で命に関わる。<br><b>まずトリガー(セボフルラン)を止める</b> のが正解。"
       },
-      { type: "narration", text: "続いて、<b>MH の特効薬「ダントロレン」</b> を使います。<br>2.5 mg/kg を静脈から投与。体表冷却+冷却輸液も並行。応援を呼び、みんなで対応!" },
-      { type: "narration", text: "ダントロレンの効果はゆっくり現れます…" },
-      { type: "vitalsChange", vitals: { hr: 115, etco2: 55, temp: 38.9 }, duration: SLOW },
-      { type: "narration", text: "少しだけ改善。まだ油断できません。" },
-      { type: "vitalsChange", vitals: { hr: 100, etco2: 48, temp: 38.4 }, duration: SLOW },
-      { type: "narration", text: "「先生、体温がやっと下がり始めました…」" },
-      { type: "vitalsChange", vitals: { hr: 88, etco2: 42, temp: 37.8 }, duration: SLOW },
-      { type: "narration", text: "手術は中止、山田さんは ICU へ搬送されます。24 時間はダントロレンを継続して、しっかりモニタします。" },
+      { type: "narration", text: "MH への<b>初期対応セット</b>を進めます。ひとつずつ確認していこう。" },
+      { type: "narration", text: "① <b>セボフルラン中止</b>(トリガー除去)+ TIVA(点滴麻酔)へ切替。" },
+      { type: "narration", text: "② <b>麻酔器を交換</b>(装置内に残ったセボフルランを完全に排除)。" },
+      { type: "narration", text: "③ 新しい麻酔器で <b>100% 酸素を大量に流す(過換気)</b>。体に残ったセボフルランを息と一緒に外に出す。" },
+      { type: "narration", text: "④ <b>ダントロレン(特効薬)を静脈投与</b>。2.5 mg/kg を bolus、必要なら追加(最大 10 mg/kg)。" },
+      { type: "narration", text: "⑤ <b>全身冷却</b>。冷却輸液+氷嚢+体表冷却。" },
+      { type: "narration", text: "⑥ <b>カリウム補正</b>。壊れた筋肉から漏れた K⁺ が高いので、Ca 剤・グルコース+インスリン療法・重曹などで下げる。" },
+      { type: "narration", text: "⑦ 応援を全員招集。看護師、麻酔科の同僚、上級医、みんなで対応。" },
+      { type: "narration", text: "初期対応が一通り終わりました。<br>体温や EtCO₂ はまだ落ち着かない — MH の反応はゆっくり治まります。<b>ここで焦って麻酔を覚まさない</b>のがポイント。" },
+      { type: "narration", text: "「手術は中止、<b>麻酔で眠らせたまま、ICU へ搬送だ!</b>」" },
+      { type: "narration", text: "ICU では、落ち着くまで<b>麻酔を続けたまま管理</b>します。ダントロレンは 24 時間継続、K・体温・尿量を数時間ごとにモニタ。<br>命の危険を脱するまで、静かにみんなで守ります。" },
       { type: "dialogue", speaker: "外科医", side: "other", text: "ご家族に説明してきます。命が助かって本当に良かった。" },
-      { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "はい。<b>家族にも MH の遺伝子検査</b> を勧めましょう。子どもさんも同じ体質かもしれない。" },
-      { type: "roomComplete", outcome: "ダントロレン+冷却で救命、ICU 経て回復。家族に MH 遺伝子検査を勧める。" }
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "はい。<b>家族にも MH の検査</b>を勧めましょう。<b>遺伝性の病気</b>だから、子どもさんも同じ体質かもしれない。" },
+      { type: "roomComplete", outcome: "初期対応セット完遂 → 眠らせたまま ICU 搬送。回復後、家族にも MH 検査を勧める。" }
     ]
   },
 
@@ -473,9 +476,9 @@ const ROOMS = [
       { type: "narration", text: "順調に経過していたところ…" },
       { type: "alert",
         text: "ピロピロピロ!!! 緊急アラーム!",
-        vitalsAfter: { hr: 0, spo2: 88, etco2: 12, bpUnmeasurable: true },
+        vitalsAfter: { hr: 0, etco2: 12, bpUnmeasurable: true, spo2Unmeasurable: true },
         ecgMode: "vf" },
-      { type: "narration", text: "看護師「先生!心電図が乱れてバラバラ!<b>脈が触れません!</b>」<br>モニターは <b>VF(心室細動)</b>!血圧計も測れません。" },
+      { type: "narration", text: "看護師「先生!心電図が乱れてバラバラ!<b>脈が触れません!</b>」<br>モニターは <b>VF(心室細動)</b>!血圧も酸素も測定不能です。" },
       { type: "question",
         prompt: "Q1:VF!<b>1 秒でも早く何をする?</b>",
         choices: [
@@ -489,11 +492,15 @@ const ROOMS = [
         wrongBody: "VF では <b>薬より先に電気ショック</b>。抗不整脈薬は DC で戻らない時の追加。<br>疑わしきは治療 — 迷ってる時間はない。"
       },
       { type: "narration", text: "DC 150J、実施!<br>「みんな離れてー!」「ドン!!」" },
+      { type: "narration", text: "<b>胸部圧迫(胸骨圧迫)を続けます…</b>" },
       { type: "vitalsChange",
-        vitals: { hr: 78, spo2: 98, etco2: 35, bpUnmeasurable: false, sbp: 110, dbp: 70 },
+        vitals: { hr: 78, spo2: 98, etco2: 35, spo2Unmeasurable: false },
         duration: QUICK,
         ecgModeAfter: null },
-      { type: "narration", text: "<b>波形が正常に戻った!</b> 洞調律に回復!脈も触れる!救命成功!" },
+      { type: "narration", text: "<b>脈が触れます!</b>心電図が正常に戻り、酸素飽和度も戻ってきた!" },
+      { type: "narration", text: "血圧を測ってみましょう。マンシェットを起動…" },
+      { type: "nibpMeasure", target: { sbp: 110, dbp: 80 }, msg: "血圧を測定します..." },
+      { type: "narration", text: "<b>血圧 110/80 !</b> 洞調律に回復!救命成功!" },
       { type: "narration", text: "手術は中止、循環器内科でしっかり調べたところ…<b>ブルガダ症候群</b>と判明。<br>若い健康な人でも突然死する遺伝性の病気で、心電図に特徴的な変化があります。" },
       { type: "dialogue", speaker: "循環器内科の先生", side: "other", text: "植え込み型除細動器(ICD)の適応かもしれません。しっかりフォローします。" },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "ありがとうございます。<b>ご家族にも心電図検査</b> を勧めましょう。" },
@@ -514,13 +521,12 @@ const ROOMS = [
     initialVitals: { hr: 88, sbp: 160, dbp: 95, spo2: 98, etco2: 38, bis: 92, temp: 36.6 },
     stages: [
       { type: "narration", text: "OR4 に入りました。<br>佐藤さん、72 歳女性。<b>白内障手術中</b>。目に痛み止めの注射(局所麻酔)だけで、<b>まだ眠りの薬(鎮静剤)は使っていません</b>。意識はハッキリしています。" },
-      { type: "narration", text: "モニターを確認 — BIS 92(起きてる)、血圧 160/95(もともと高めの方)。手術は始まったばかり。" },
-      { type: "narration", text: "…と思ったら、血圧が少しずつ上がってきました。" },
-      { type: "vitalsChange", vitals: { sbp: 175, dbp: 102, hr: 92 }, duration: MEDIUM },
-      { type: "narration", text: "看護師さん「先生、血圧上がってきてます…」" },
-      { type: "vitalsChange", vitals: { sbp: 190, dbp: 110, hr: 100 }, duration: MEDIUM },
-      { type: "alert", text: "ピロン♪ 血圧アラーム!190/110!" },
-      { type: "narration", text: "看護師「患者さんが『怖い、怖い』とおっしゃってます。動きそうで…先生、来てくれませんか?」" },
+      { type: "narration", text: "モニターを確認 — BIS 92(起きてる状態)、血圧 160/95(もともと高めの方)。手術は始まったばかり。" },
+      { type: "narration", text: "…と思ったら、血圧が上がってきました。マンシェットで測ってみましょう。" },
+      { type: "nibpMeasure", target: { sbp: 175, dbp: 102 }, msg: "血圧測定中…" },
+      { type: "narration", text: "175/102 まで上がった。少し嫌な感じ。もう一度測ります…" },
+      { type: "nibpMeasure", target: { sbp: 190, dbp: 110 }, msg: "血圧測定中…", alarmAfter: true },
+      { type: "narration", text: "看護師「190/110!患者さんが『怖い、怖い』とおっしゃってます。動きそうで…先生、来てくれませんか?」" },
       { type: "question",
         prompt: "Q1:意識のある患者さんの高血圧+不安。<b>まず何をする?</b>",
         choices: [
@@ -535,11 +541,28 @@ const ROOMS = [
       },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "佐藤さん、大丈夫ですよ。あと10分で終わります。少し眠くなるお薬を追加しますね。" },
       { type: "dialogue", speaker: "佐藤さん", side: "other", text: "…先生、ありがとう…" },
-      { type: "narration", text: "少量の鎮静剤(ミダゾラム 1mg)を静注。ゆっくり効いてきます…" },
-      { type: "vitalsChange", vitals: { bis: 82, sbp: 175, dbp: 100, hr: 92 }, duration: MEDIUM },
-      { type: "vitalsChange", vitals: { bis: 76, sbp: 150, dbp: 88, hr: 85 }, duration: MEDIUM },
-      { type: "vitalsChange", vitals: { bis: 72, sbp: 128, dbp: 78, hr: 78 }, duration: MEDIUM },
-      { type: "narration", text: "血圧も心拍も落ち着きました。BIS 72 で軽く眠っている状態。<br>手術は無事に完了。翌日、佐藤さんは「あら、こんなに世界がきれいだったのね」と喜んでいます。" },
+      { type: "narration", text: "ミダゾラム(鎮静剤)を投与すれば、少し気持ちを落ち着かせて、うとうと眠くなります。<br>でも、実は <b>気をつけないといけないこと</b> があります。" },
+      { type: "question",
+        prompt: "Q2:ミダゾラム(鎮静剤)を投与しました。<b>気をつけることは?</b>",
+        choices: [
+          { text: "血圧が高くなる", icon: "🩸", correct: false },
+          { text: "患者さんが興奮する", icon: "😱", correct: false },
+          { text: "息が止まってしまう", icon: "🫁", correct: true }
+        ],
+        correctTitle: "正解! ✅",
+        correctBody: "眠らせる薬(ミダゾラム)は使うけど、<b>息が止まるほど使ってはいけません</b>。<br>自分で息はするけど、うとうとするくらいの量に <b>細かく調整</b> する必要があります。<br><br>チェックするポイント:<br>・<b>脳波(BIS)</b> → 意識の深さを確認<br>・<b>呼吸のモニター(EtCO₂ 波形)</b> → 呼吸の回数と深さを確認<br>・呼吸が止まると <b>SpO₂(酸素飽和度)</b> が下がるので、下がってきたらすぐ量を減らす",
+        wrongTitle: "実は…",
+        wrongBody: "正解は「<b>息が止まってしまう</b>」。<br>鎮静剤(ミダゾラム)は眠らせる薬だけど、量が多いと <b>呼吸を抑えて息が止まる</b> 副作用があります。<br>BIS(脳波)と EtCO₂ 波形、SpO₂ を見ながら、量を細かく調整する必要があります。"
+      },
+      { type: "narration", text: "適量のミダゾラム(1mg 少量)を静注。呼吸を見ながらゆっくり効かせます…" },
+      { type: "vitalsChange", vitals: { bis: 80, hr: 92 }, duration: MEDIUM },
+      { type: "narration", text: "BIS が下がってきた(80)。うとうとしてきたみたい。呼吸は自分で保ってる、EtCO₂ 波形も規則的。" },
+      { type: "narration", text: "しばらくして、血圧を測ってみます…" },
+      { type: "nibpMeasure", target: { sbp: 150, dbp: 88 }, msg: "少し下がったかな?" },
+      { type: "vitalsChange", vitals: { bis: 74, hr: 82 }, duration: MEDIUM },
+      { type: "narration", text: "もう一度測ってみます…" },
+      { type: "nibpMeasure", target: { sbp: 128, dbp: 78 }, msg: "落ち着いてきた!" },
+      { type: "narration", text: "血圧も心拍も、脳波も落ち着きました。手術は無事に完了。<br>翌日、佐藤さんは「あら、こんなに世界がきれいだったのね」と喜んでいます。" },
       { type: "roomComplete", outcome: "鎮静と声かけで安心、白内障手術完了。「先生、ありがとう」" }
     ]
   },
@@ -558,11 +581,23 @@ const ROOMS = [
       { type: "narration", text: "OR5 に入りました。<br><b>ゆうくん、5 歳の男の子</b>。扁桃(のどのリンパ)を取る手術。<br>麻酔導入したところ…" },
       { type: "narration", text: "筋弛緩薬(ロクロニウム)を入れた直後から、様子がおかしくなってきました。" },
       { type: "vitalsChange", vitals: { hr: 130, sbp: 75, dbp: 45, spo2: 95, etco2: 32 }, duration: MEDIUM },
-      { type: "narration", text: "看護師「先生!顔と胸に<b>真っ赤な発疹</b>が広がってます!ゼーゼーいう<b>喘鳴</b>も!」" },
       { type: "vitalsChange", vitals: { hr: 155, sbp: 62, dbp: 35, spo2: 92, etco2: 28 }, duration: MEDIUM },
-      { type: "alert", text: "ピロピロ!! 緊急コール!! HR 155・BP 62/35!" },
+      { type: "alert", text: "ピロピロ!! 緊急コール!!" },
+      { type: "narration", text: "看護師「先生!顔と胸に<b>真っ赤な発疹</b>が広がってます!ゼーゼーいう<b>喘鳴</b>も!」" },
+      { type: "multiQuestion",
+        prompt: "Q1:モニターのどこに異常がある?<b>当てはまるもの、全部選んで!</b>(複数選択できます)",
+        choices: [
+          { text: "心拍数(HR)が速い", icon: "❤️", correct: true },
+          { text: "血圧(BP)が低い", icon: "🩸", correct: true },
+          { text: "酸素飽和度(SpO₂)が低い", icon: "💨", correct: true }
+        ],
+        correctTitle: "パーフェクト! ✅ 正解は 3 つ全てです!",
+        correctBody: "3つ全部当たり!<br>・心拍数 155(速い)<br>・血圧 62/35(低い)<br>・SpO₂ 92%(低い)<br><br>同時に <b>3つ以上のバイタルが変化する</b> ときは、<b>全身の異常(ショックなど)</b> のサインです。1つだけを見るのではなく、<b>モニター全部を見る</b> のが大事!",
+        partialTitle: "惜しい!",
+        partialBody: "実は <b>3 つ全部</b> 異常なんです!<br>・心拍数 155(速い)<br>・血圧 62/35(低い)<br>・SpO₂ 92%(低い)<br><br>同時に複数のバイタルが変化する = <b>全身の異常</b> のサイン。次からは <b>モニター全部を見る</b> ようにしよう。"
+      },
       { type: "question",
-        prompt: "Q1:発疹+喘鳴+血圧急低下。<b>何が起きた?</b>",
+        prompt: "Q2:発疹+喘鳴+血圧急低下+全身異常。<b>何が起きた?</b>",
         choices: [
           { text: "アナフィラキシー(薬剤アレルギー)", icon: "🆘", correct: true },
           { text: "麻酔が効きすぎた", icon: "💤", correct: false },
@@ -574,7 +609,7 @@ const ROOMS = [
         wrongBody: "正解は <b>アナフィラキシー</b>。<br>皮膚の発疹+気道の狭窄+血圧低下 の 3 つが同時に起きるのが特徴。麻酔薬効きすぎでは発疹は出ない。"
       },
       { type: "question",
-        prompt: "Q2:アナフィラキシーへの<b>特効薬</b>は?",
+        prompt: "Q3:アナフィラキシーへの<b>特効薬</b>は?",
         choices: [
           { text: "アドレナリン(小児は 0.01 mg/kg 筋注)", icon: "💉", correct: true },
           { text: "抗ヒスタミン薬だけ", icon: "💊", correct: false },
@@ -664,7 +699,8 @@ let state = {
   highlightTarget: null,
   ecgMode: null,   // null | "st_elevation" | "vf"
   bpUnmeasurable: false,
-  bpMeasuring: false
+  bpMeasuring: false,
+  spo2Unmeasurable: false
 };
 
 let audioCtx = null;
@@ -981,10 +1017,11 @@ function renderMonitor() {
   const v = state.vitals;
   const sbpCls = state.bpUnmeasurable ? "na" : (state.bpMeasuring ? "measuring" : (v.sbp < 80 ? "low" : (v.sbp < 100 ? "warn" : (v.sbp > 180 ? "hot" : ""))));
   const hrCls = (v.hr === 0) ? "low" : (v.hr > 140 ? "hot" : (v.hr > 120 || v.hr < 50 ? "warn" : ""));
-  const spo2Cls = v.spo2 < 92 ? "low" : (v.spo2 < 96 ? "warn" : "");
+  const spo2Cls = state.spo2Unmeasurable ? "na" : (v.spo2 < 92 ? "low" : (v.spo2 < 96 ? "warn" : ""));
   const tempCls = v.temp >= 38.5 ? "hot" : (v.temp >= 37.8 ? "warn" : "");
   const etCls = v.etco2 > 60 ? "hot" : (v.etco2 > 45 ? "warn" : "");
   const hrDisplay = v.hr === 0 ? "—" : v.hr;
+  const spo2Display = state.spo2Unmeasurable ? "—" : v.spo2;
   let bpDisplay, mapDisplay;
   if (state.bpUnmeasurable) { bpDisplay = "測定不能"; mapDisplay = "—"; }
   else if (state.bpMeasuring) { bpDisplay = "測定中..."; mapDisplay = "—"; }
@@ -995,42 +1032,81 @@ function renderMonitor() {
     <div class="monitor" id="monitor">
       <div class="label-cell ${hl("hr")}">
         <span class="name v-hr">HR</span><span class="unit">(bpm)</span>
-        <span class="value v-hr ${hrCls}">${hrDisplay}</span>
+        <span class="value v-hr ${hrCls}" id="val-hr">${hrDisplay}</span>
       </div>
       <div class="wave-cell"><canvas id="ecg"></canvas></div>
 
       <div class="label-cell ${hl("bp")}">
         <span class="name v-bp">NIBP</span><span class="unit">SYS/DIA</span>
-        <span class="value v-bp ${sbpCls}">${bpDisplay}</span>
-        <span class="sub v-bp">${mapDisplay}</span>
+        <span class="value v-bp ${sbpCls}" id="val-bp">${bpDisplay}</span>
+        <span class="sub v-bp" id="val-bp-map">${mapDisplay}</span>
       </div>
       <div class="wave-cell empty"></div>
 
       <div class="label-cell ${hl("spo2")}">
         <span class="name v-spo2">SpO₂</span><span class="unit">(%)</span>
-        <span class="value v-spo2 ${spo2Cls}">${v.spo2}</span>
+        <span class="value v-spo2 ${spo2Cls}" id="val-spo2">${spo2Display}</span>
       </div>
       <div class="wave-cell"><canvas id="pleth"></canvas></div>
 
       <div class="label-cell ${hl("co2")}">
         <span class="name v-co2">EtCO₂</span><span class="unit">(mmHg)</span>
-        <span class="value v-co2 ${etCls}">${v.etco2}</span>
+        <span class="value v-co2 ${etCls}" id="val-co2">${v.etco2}</span>
       </div>
       <div class="wave-cell"><canvas id="capno"></canvas></div>
 
       <div class="label-cell ${hl("bis")}">
         <span class="name v-bis">BIS</span><span class="unit">(0-100)</span>
-        <span class="value v-bis">${v.bis}</span>
+        <span class="value v-bis" id="val-bis">${v.bis}</span>
       </div>
       <div class="wave-cell"><canvas id="eeg"></canvas></div>
 
       <div class="label-cell ${hl("temp")}">
         <span class="name v-temp">体温</span><span class="unit">(℃)</span>
-        <span class="value v-temp ${tempCls}">${(typeof v.temp === "number" ? v.temp.toFixed(1) : v.temp)}</span>
+        <span class="value v-temp ${tempCls}" id="val-temp">${(typeof v.temp === "number" ? v.temp.toFixed(1) : v.temp)}</span>
       </div>
       <div class="wave-cell empty"></div>
     </div>
   `;
+}
+
+// 波形を保ったまま数値だけ更新(monitor 全体を再レンダリングしない)
+function updateMonitorNumbers() {
+  const v = state.vitals;
+  const hrEl = document.getElementById("val-hr");
+  if (hrEl) {
+    hrEl.textContent = v.hr === 0 ? "—" : v.hr;
+    hrEl.className = "value v-hr " + ((v.hr === 0) ? "low" : (v.hr > 140 ? "hot" : (v.hr > 120 || v.hr < 50 ? "warn" : "")));
+  }
+  const bpEl = document.getElementById("val-bp");
+  const bpMap = document.getElementById("val-bp-map");
+  if (bpEl && bpMap) {
+    let bpDisplay, mapDisplay, sbpCls;
+    if (state.bpUnmeasurable) { bpDisplay = "測定不能"; mapDisplay = "—"; sbpCls = "na"; }
+    else if (state.bpMeasuring) { bpDisplay = "測定中..."; mapDisplay = "—"; sbpCls = "measuring"; }
+    else { bpDisplay = v.sbp + "/" + v.dbp; mapDisplay = "(" + Math.round((v.sbp + 2 * v.dbp) / 3) + ")";
+           sbpCls = v.sbp < 80 ? "low" : (v.sbp < 100 ? "warn" : (v.sbp > 180 ? "hot" : "")); }
+    bpEl.textContent = bpDisplay;
+    bpEl.className = "value v-bp " + sbpCls;
+    bpMap.textContent = mapDisplay;
+  }
+  const spo2El = document.getElementById("val-spo2");
+  if (spo2El) {
+    if (state.spo2Unmeasurable) { spo2El.textContent = "—"; spo2El.className = "value v-spo2 na"; }
+    else { spo2El.textContent = v.spo2; spo2El.className = "value v-spo2 " + (v.spo2 < 92 ? "low" : (v.spo2 < 96 ? "warn" : "")); }
+  }
+  const etEl = document.getElementById("val-co2");
+  if (etEl) {
+    etEl.textContent = v.etco2;
+    etEl.className = "value v-co2 " + (v.etco2 > 60 ? "hot" : (v.etco2 > 45 ? "warn" : ""));
+  }
+  const bisEl = document.getElementById("val-bis");
+  if (bisEl) bisEl.textContent = v.bis;
+  const tempEl = document.getElementById("val-temp");
+  if (tempEl) {
+    tempEl.textContent = (typeof v.temp === "number" ? v.temp.toFixed(1) : v.temp);
+    tempEl.className = "value v-temp " + (v.temp >= 38.5 ? "hot" : (v.temp >= 37.8 ? "warn" : ""));
+  }
 }
 
 function renderRoomFrame(extraHtml) {
@@ -1053,6 +1129,7 @@ function enterRoom(idx) {
   state.ecgMode = null;
   state.bpUnmeasurable = false;
   state.bpMeasuring = false;
+  state.spo2Unmeasurable = false;
   const room = ROOMS[idx];
   state.vitals = { ...room.initialVitals };
   runStage(0);
@@ -1130,6 +1207,7 @@ function runStage(idx) {
       if (stage.vitalsAfter) {
         Object.assign(state.vitals, stage.vitalsAfter);
         if (stage.vitalsAfter.bpUnmeasurable !== undefined) state.bpUnmeasurable = stage.vitalsAfter.bpUnmeasurable;
+        if (stage.vitalsAfter.spo2Unmeasurable !== undefined) state.spo2Unmeasurable = stage.vitalsAfter.spo2Unmeasurable;
       }
       if (stage.ecgMode !== undefined) state.ecgMode = stage.ecgMode;
       showAlertOverlay(stage.text, () => nextStage());
@@ -1139,6 +1217,9 @@ function runStage(idx) {
       if (stage.vitals && stage.vitals.bpUnmeasurable !== undefined) {
         state.bpUnmeasurable = stage.vitals.bpUnmeasurable;
       }
+      if (stage.vitals && stage.vitals.spo2Unmeasurable !== undefined) {
+        state.spo2Unmeasurable = stage.vitals.spo2Unmeasurable;
+      }
       if (stage.ecgModeAfter !== undefined) state.ecgMode = stage.ecgModeAfter;
       animateVitals(stage.vitals, stage.duration || SLOW, () => {
         setTimeout(nextStage, 400);
@@ -1146,7 +1227,7 @@ function runStage(idx) {
       break;
 
     case "nibpMeasure":
-      // マンシェット血圧測定シミュレーション
+      // マンシェット血圧測定シミュレーション(波形は維持)
       renderRoomFrame(`
         <div class="stage-card narration">
           <div class="stage-body">🩸 ${stage.msg || "血圧計が測定中です..."}</div>
@@ -1154,24 +1235,19 @@ function runStage(idx) {
         </div>
       `);
       state.bpMeasuring = true;
-      // モニターだけ再レンダリング
-      const monEl = document.getElementById("monitor");
-      if (monEl) { monEl.outerHTML = renderMonitor(); reinitCanvases(); }
+      updateMonitorNumbers();
       playNibpStart();
-      // 測定音を数回鳴らす(マンシェットの beep beep 感)
       setTimeout(() => playNibpStart(), 400);
       setTimeout(() => playNibpStart(), 800);
       setTimeout(() => playNibpStart(), 1200);
       setTimeout(() => {
         state.bpMeasuring = false;
+        state.bpUnmeasurable = false; // 測定できたので解除
         state.vitals.sbp = stage.target.sbp;
         state.vitals.dbp = stage.target.dbp;
-        const m = document.getElementById("monitor");
-        if (m) { m.outerHTML = renderMonitor(); reinitCanvases(); }
+        updateMonitorNumbers();
         playNibpDone();
-        // アラーム後処理
         if (stage.alarmAfter) setTimeout(playAlert, 200);
-        // 次へ ボタン活性化
         const btn = document.getElementById("nibpNext");
         if (btn) {
           btn.disabled = false;
@@ -1193,6 +1269,24 @@ function runStage(idx) {
               <span class="label">${c.label || c.text}</span>
             </button>
           `).join("")}
+        </div>
+      `);
+      break;
+
+    case "multiQuestion":
+      state.totalQuestions++;
+      state.highlightTarget = null;
+      state._multiSelected = new Set();
+      renderRoomFrame(`
+        <div class="question-prompt">${stage.prompt}</div>
+        <div class="choices" id="choices">
+          ${stage.choices.map((c, i) => `
+            <button class="choice-btn" id="mchoice-${i}" onclick="toggleMultiChoice(${i})">
+              <span class="icon" id="mcheck-${i}">☐</span>
+              <span class="label">${c.label || c.text}</span>
+            </button>
+          `).join("")}
+          <button class="next-btn" onclick="submitMultiChoice()" style="margin-top: 6px;">✔ 決定する</button>
         </div>
       `);
       break;
@@ -1248,6 +1342,63 @@ function selectChoice(idx) {
   }, 800);
 }
 
+function toggleMultiChoice(idx) {
+  if (!state._multiSelected) state._multiSelected = new Set();
+  if (state._multiSelected.has(idx)) state._multiSelected.delete(idx);
+  else state._multiSelected.add(idx);
+  const btn = document.getElementById(`mchoice-${idx}`);
+  const check = document.getElementById(`mcheck-${idx}`);
+  if (state._multiSelected.has(idx)) {
+    btn.style.borderColor = "#2a6bb8";
+    btn.style.background = "#eef5ff";
+    check.textContent = "☑";
+  } else {
+    btn.style.borderColor = "#d0dbe8";
+    btn.style.background = "white";
+    check.textContent = "☐";
+  }
+  playPing();
+}
+
+function submitMultiChoice() {
+  const room = ROOMS[state.currentRoomIdx];
+  const stage = room.stages[state.currentStageIdx];
+  const selected = state._multiSelected || new Set();
+  // 全ての正解を選び、かつ不正解を選んでいないなら「パーフェクト」
+  let allCorrectSelected = true, wrongSelected = false;
+  stage.choices.forEach((c, i) => {
+    if (c.correct && !selected.has(i)) allCorrectSelected = false;
+    if (!c.correct && selected.has(i)) wrongSelected = true;
+  });
+  const isPerfect = allCorrectSelected && !wrongSelected;
+  // ボタン無効化 + 正解を全部緑にする
+  stage.choices.forEach((c, i) => {
+    const btn = document.getElementById(`mchoice-${i}`);
+    const check = document.getElementById(`mcheck-${i}`);
+    if (btn) btn.disabled = true;
+    if (c.correct) {
+      if (btn) { btn.classList.add("correct"); btn.style.borderColor = "#27ae60"; btn.style.background = "#d4f4dd"; }
+      if (check) check.textContent = "✅";
+    } else if (selected.has(i)) {
+      if (btn) { btn.classList.add("wrong"); btn.style.borderColor = "#e74c3c"; btn.style.background = "#ffe0dc"; }
+      if (check) check.textContent = "❌";
+    }
+  });
+  if (isPerfect) { state.correctCount++; playCorrect(); }
+  else { playWrong(); }
+  setTimeout(() => {
+    const feedbackHtml = `
+      <div class="feedback ${isPerfect ? 'correct' : 'wrong'}">
+        <div class="feedback-title">${isPerfect ? stage.correctTitle : (stage.partialTitle || stage.wrongTitle)}</div>
+        <div class="feedback-body">${isPerfect ? stage.correctBody : (stage.partialBody || stage.wrongBody)}</div>
+        <button class="next-btn" onclick="nextStage()">次へ →</button>
+      </div>
+    `;
+    document.getElementById("choices").insertAdjacentHTML("afterend", feedbackHtml);
+    document.querySelector(".feedback").scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 800);
+}
+
 function showAlertOverlay(text, callback) {
   playAlert();
   const overlay = document.createElement("div");
@@ -1264,14 +1415,13 @@ function animateVitals(target, duration, callback) {
     const t = Math.min(1, (performance.now() - startTime) / duration);
     const eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
     Object.keys(target).forEach(k => {
-      if (k === "bpUnmeasurable") return; // 直接セット済
+      if (k === "bpUnmeasurable" || k === "spo2Unmeasurable") return; // 直接セット済
       const s = start[k], e = target[k];
       if (typeof s === "number" && typeof e === "number") {
         state.vitals[k] = k === "temp" ? +(s + (e - s) * eased).toFixed(1) : Math.round(s + (e - s) * eased);
       }
     });
-    const m = document.getElementById("monitor");
-    if (m) { m.outerHTML = renderMonitor(); reinitCanvases(); }
+    updateMonitorNumbers();  // 波形は維持、数値だけ更新
     if (t < 1) requestAnimationFrame(step);
     else callback();
   }
