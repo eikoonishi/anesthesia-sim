@@ -344,7 +344,7 @@ const ROOMS = [
       avatar: "👨‍💼",
       name: "田中さん(60歳男性)",
       detail: "既往:高血圧・糖尿病・脂質異常症(コントロール不良、普段の血圧 150/90)",
-      surgery: "胃の手術(腹腔鏡)・術中"
+      surgery: "胃の手術(腹腔鏡)・術中<br>麻酔法:<b>全身麻酔(全静脈麻酔)+ 硬膜外麻酔</b>"
     },
     initialVitals: { hr: 78, sbp: 150, dbp: 90, spo2: 99, etco2: 35, bis: 45, temp: 36.5 },
     stages: [
@@ -373,11 +373,11 @@ const ROOMS = [
         wrongBody: "正解は <b>心電図</b>。ECG の <b>ST 部分が上がってる</b>のが見えたはず。これは <b>心臓の血管が詰まる = 心筋梗塞</b> のサイン。"
       },
       { type: "narration", text: "心筋梗塞で心臓が弱ると、血液を送る力(=血圧)が下がってきます。<br>マンシェットで血圧を測ってみましょう。" },
-      { type: "nibpMeasure", target: { sbp: 120, dbp: 80 }, msg: "少し下がった…" },
+      { type: "nibpMeasure", target: { sbp: 120, dbp: 80 }, resultMsg: "血圧 120/80 — 少し下がってきた!" },
       { type: "narration", text: "しばらくして、また血圧計が測ります…" },
-      { type: "nibpMeasure", target: { sbp: 90, dbp: 60 }, msg: "さらに下がってきた!" },
+      { type: "nibpMeasure", target: { sbp: 90, dbp: 60 }, resultMsg: "血圧 90/60 — さらに下がった!" },
       { type: "narration", text: "続いて次の測定…" },
-      { type: "nibpMeasure", target: { sbp: 80, dbp: 50 }, msg: "80/50 まで下がった!", alarmAfter: true },
+      { type: "nibpMeasure", target: { sbp: 80, dbp: 50 }, resultMsg: "血圧 80/50 — 危険な低血圧!", alarmAfter: true },
       { type: "question",
         prompt: "Q2:心電図で心筋梗塞、血圧も 80/50 まで下がってきた。<b>あなたはどうする?</b>",
         choices: [
@@ -405,59 +405,76 @@ const ROOMS = [
       avatar: "👩",
       name: "山田さん(40歳女性)",
       detail: "既往:なし・健康・<b>初めての全身麻酔</b>",
-      surgery: "腹腔鏡下 胆嚢摘出術・術中"
+      surgery: "腹腔鏡下 胆嚢摘出術・術中<br>麻酔法:<b>全身麻酔(吸入麻酔薬セボフルラン使用)</b>"
     },
     initialVitals: { hr: 78, sbp: 128, dbp: 78, spo2: 99, etco2: 38, bis: 45, temp: 36.5 },
     stages: [
-      { type: "narration", text: "OR2 に入りました。<br>山田さん、40歳女性。健康な人で、<b>今日が人生初めての全身麻酔</b>です。" },
-      { type: "narration", text: "手術開始から順調…と思ったら、体温が少しずつ上がってきました。" },
-      { type: "vitalsChange", vitals: { temp: 37.0 }, duration: SLOW },
-      { type: "narration", text: "「先生、体温が 37.0℃ になりました。」<br>まだ許容範囲だけど…続けて観察します。" },
-      { type: "vitalsChange", vitals: { hr: 90, etco2: 44, temp: 37.5 }, duration: SLOW },
-      { type: "narration", text: "「先生、37.5℃、心拍も 90 まで上がってます…」" },
-      { type: "vitalsChange", vitals: { hr: 108, etco2: 52, temp: 38.2 }, duration: SLOW },
-      { type: "narration", text: "「体温 38.2℃!EtCO₂ も 52 まで!」ちょっと嫌な予感…" },
-      { type: "vitalsChange", vitals: { hr: 130, etco2: 62, temp: 39.2 }, duration: SLOW },
-      { type: "alert", text: "ピロロン♪ 体温 39.2℃・EtCO₂ 62!" },
-      { type: "narration", text: "看護師「先生!<b>尿の色が赤褐色(コーラ色)</b>です!血液検査で <b>K(カリウム)が 6.0</b> と高いです!」" },
+      { type: "narration", text: "OR2 に入りました。<br>山田さん、40歳女性。健康な人で、<b>今日が人生初めての全身麻酔</b>です。<br>麻酔は <b>セボフルラン</b>(吸入麻酔薬)で維持中。" },
+      { type: "narration", text: "手術は順調に進んでいます。<br>SVは他の部屋も見に行きましょう…と、その前にモニターを一度チェック。" },
+      // ここから密かに体温+EtCO2 上昇(narrationでは言及しない)
+      { type: "vitalsChange", vitals: { temp: 37.2, etco2: 41 }, duration: SLOW },
+      { type: "vitalsChange", vitals: { temp: 37.7, etco2: 46 }, duration: SLOW },
+      { type: "vitalsChange", vitals: { temp: 38.3, etco2: 52 }, duration: SLOW },
+      // 38度超えたところで気づかせるクイズ
+      { type: "multiQuestion",
+        prompt: "Q1:モニターで<b>異常</b>があるのはどれ?<b>複数選べます、全部見つけて!</b>",
+        choices: [
+          { text: "心電図(ECG)", icon: "❤️", correct: false },
+          { text: "血圧(BP)", icon: "🩸", correct: false },
+          { text: "呼気二酸化炭素(EtCO₂)", icon: "🌬", correct: true },
+          { text: "体温", icon: "🌡", correct: true }
+        ],
+        correctTitle: "パーフェクト! ✅",
+        correctBody: "正解!<br>・<b>体温</b> が 36.5→38.3 まで上がってる<br>・<b>EtCO₂</b> も 38→52 に上がってる(波形の山も高くなってる)<br>心電図と血圧はまだ正常範囲。<br>変化は静かに始まる。<b>モニターは全部を見て、小さな変化も見逃さない</b>のが大事!",
+        partialTitle: "惜しい!",
+        partialBody: "実は <b>体温 と EtCO₂ の 2 つ</b> が異常なんです。<br>・体温 36.5→38.3(上がってる)<br>・EtCO₂ 38→52(波形の山も高くなってる)<br>心電図と血圧はまだ正常。<br>変化は静かに始まる — <b>モニター全部を見る癖</b> をつけよう。"
+      },
+      { type: "narration", text: "気付いたね。ここからさらに悪化していきます…" },
+      // クイズ後にさらに悪化。ecgMode=hyperK(K上昇でT波が高くなる)、HR上昇、41度まで
+      { type: "vitalsChange", vitals: { hr: 115, etco2: 58, temp: 39.5 }, duration: MEDIUM, ecgModeAfter: "hyperK" },
+      { type: "alert", text: "ピロロン♪ 体温 40℃・EtCO₂ 60 超え!" },
+      { type: "vitalsChange", vitals: { hr: 135, etco2: 65, temp: 41.0 }, duration: MEDIUM },
+      { type: "narration", text: "体温が 41℃!EtCO₂ もどんどん上がる…心電図の <b>T波が異常に高く尖ってきた</b>(=カリウムが上がっているサイン)。<br>これはもしかして…" },
+      { type: "narration", text: "看護師「先生!<b>尿の色が赤褐色(コーラ色)</b>です!採血で <b>K(カリウム)が 6.0</b> に上がってます!」" },
       { type: "question",
-        prompt: "Q1:体温↑↑ + EtCO₂↑↑ + 赤褐色の尿 + 高K。<b>何を疑う?</b>",
+        prompt: "Q2:体温 41℃ + EtCO₂↑↑ + 赤褐色の尿 + 高K + 心電図T波↑。<b>何を疑う?</b>",
         choices: [
           { text: "悪性高熱症(MH)", icon: "🔥", correct: true },
           { text: "加温マットで温めすぎた", icon: "🌡", correct: false },
           { text: "抗菌薬アレルギー", icon: "💉", correct: false }
         ],
         correctTitle: "正解! 🔥",
-        correctBody: "<b>悪性高熱症(MH)</b>!<br>これは <b>揮発性麻酔薬(セボフルラン)</b> がトリガーで、筋肉が過剰に収縮してしまう<b>遺伝性の病気</b>です。<br>→ 体温↑↑・二酸化炭素↑↑・<b>筋肉が壊れる(=赤褐色のミオグロビン尿)</b>・カリウム↑(壊れた筋肉から漏れる)。<br><b>初めての麻酔で発症</b>することが多い。",
+        correctBody: "<b>悪性高熱症(MH)</b>!<br><b>セボフルラン(吸入麻酔薬)</b>がトリガーで、筋肉が過剰に収縮してしまう<b>遺伝性の病気</b>です。<br>→ 体温↑↑・二酸化炭素↑↑・<b>筋肉が壊れる(=赤褐色のミオグロビン尿)</b>・カリウム↑(壊れた筋肉から漏れる)。<br><b>初めての麻酔で発症</b>することが多い。",
         wrongTitle: "実は…",
-        wrongBody: "正解は <b>悪性高熱症(MH)</b>。<br>加温過剰やアレルギーでは、<b>赤褐色の尿(筋肉が壊れた証拠)</b> と <b>高K血症</b> は起きない。<br>体温↑↑ + EtCO₂↑↑ + 筋肉壊死 = MH の典型的な組み合わせ。"
+        wrongBody: "正解は <b>悪性高熱症(MH)</b>。<br>加温過剰やアレルギーでは、<b>赤褐色の尿</b> と <b>高K血症</b> は起きない。<br>体温↑↑ + EtCO₂↑↑ + 筋肉壊死 = MH の典型パターン。"
       },
+      { type: "narration", text: "🧠 <b>カリウム(K)が上がると心臓は…</b><br>心電図の <b>T波が高く尖る</b>(テント状T波)+ <b>不整脈</b> が出る。K がさらに上がると <b>心臓が止まる</b> ことがあります。<br><b>これは緊急事態!</b>" },
       { type: "question",
-        prompt: "Q2:MH と診断!<b>まず何をする?</b>",
+        prompt: "Q3:MH と診断!<b>一番最初にやること</b>は?",
         choices: [
-          { text: "セボフルランを止めて、TIVA(点滴麻酔)に切り替える", icon: "🛑", correct: true },
-          { text: "そのまま様子を見る", icon: "👀", correct: false },
-          { text: "手術のスピードを上げてもらう", icon: "⚡", correct: false }
+          { text: "応援を呼ぶ(みんなに助けを求める)", icon: "📢", correct: true },
+          { text: "セボフルランを止める", icon: "🛑", correct: false },
+          { text: "冷却輸液を全開で流す", icon: "❄️", correct: false }
         ],
-        correctTitle: "正解! ✅",
-        correctBody: "まず <b>トリガー(セボフルラン)を止める</b> のが第一。原因を除くのが医療の基本です。",
-        wrongTitle: "危険!",
-        wrongBody: "MH は数分で命に関わる。<br><b>まずトリガー(セボフルラン)を止める</b> のが正解。"
+        correctTitle: "正解! 📢",
+        correctBody: "<b>まず「応援を呼ぶ」!!</b> これが一番大事。<br>MH は 1 人では絶対に対応できません。同時にたくさんのこと(セボ中止・麻酔器交換・ダントロレン・冷却・K補正)をやる必要があるので、<b>チーム全員の力</b> が必要。<br>助けを呼ぶ勇気=命を救う第一歩。",
+        wrongTitle: "惜しい!",
+        wrongBody: "セボフルラン中止も冷却も大事だけど、<b>一番最初は「応援を呼ぶ」</b>。<br>MH は 1 人では対応不可能。同時多発でやることがたくさんあるので、<b>チーム全員の力</b> が必要。"
       },
-      { type: "narration", text: "MH への<b>初期対応セット</b>を進めます。ひとつずつ確認していこう。" },
-      { type: "narration", text: "① <b>セボフルラン中止</b>(トリガー除去)+ TIVA(点滴麻酔)へ切替。" },
-      { type: "narration", text: "② <b>麻酔器を交換</b>(装置内に残ったセボフルランを完全に排除)。" },
-      { type: "narration", text: "③ 新しい麻酔器で <b>100% 酸素を大量に流す(過換気)</b>。体に残ったセボフルランを息と一緒に外に出す。" },
-      { type: "narration", text: "④ <b>ダントロレン(特効薬)を静脈投与</b>。2.5 mg/kg を bolus、必要なら追加(最大 10 mg/kg)。" },
-      { type: "narration", text: "⑤ <b>全身冷却</b>。冷却輸液+氷嚢+体表冷却。" },
-      { type: "narration", text: "⑥ <b>カリウム補正</b>。壊れた筋肉から漏れた K⁺ が高いので、Ca 剤・グルコース+インスリン療法・重曹などで下げる。" },
-      { type: "narration", text: "⑦ 応援を全員招集。看護師、麻酔科の同僚、上級医、みんなで対応。" },
+      { type: "narration", text: "MH への <b>初期対応セット</b> を進めます。ひとつずつ確認していこう。" },
+      { type: "narration", text: "① <b>応援を全員招集!</b> 看護師、麻酔科の同僚、上級医、みんな来て!" },
+      { type: "narration", text: "② <b>セボフルラン中止</b>(トリガー除去)+ TIVA(点滴麻酔)へ切替。" },
+      { type: "narration", text: "③ <b>麻酔器を交換</b>(装置内に残ったセボフルランを完全に排除)。" },
+      { type: "narration", text: "④ 新しい麻酔器で <b>100% 酸素を大量に流す(過換気)</b>。体に残ったセボフルランを息と一緒に外に出す。" },
+      { type: "narration", text: "⑤ <b>ダントロレン(特効薬)を静脈投与</b>。2.5 mg/kg を bolus、必要なら追加(最大 10 mg/kg)。" },
+      { type: "narration", text: "⑥ <b>全身冷却</b>。冷却輸液+氷嚢+体表冷却。" },
+      { type: "narration", text: "⑦ <b>カリウム補正</b>。Ca 剤・グルコース+インスリン療法・重曹などで K を下げて心臓を守る。" },
       { type: "narration", text: "初期対応が一通り終わりました。<br>体温や EtCO₂ はまだ落ち着かない — MH の反応はゆっくり治まります。<b>ここで焦って麻酔を覚まさない</b>のがポイント。" },
       { type: "narration", text: "「手術は中止、<b>麻酔で眠らせたまま、ICU へ搬送だ!</b>」" },
-      { type: "narration", text: "ICU では、落ち着くまで<b>麻酔を続けたまま管理</b>します。ダントロレンは 24 時間継続、K・体温・尿量を数時間ごとにモニタ。<br>命の危険を脱するまで、静かにみんなで守ります。" },
+      { type: "narration", text: "ICU では、落ち着くまで <b>麻酔を続けたまま管理</b>。ダントロレンは 24 時間継続、K・体温・尿量を数時間ごとにモニタ。<br>命の危険を脱するまで、静かにみんなで守ります。" },
       { type: "dialogue", speaker: "外科医", side: "other", text: "ご家族に説明してきます。命が助かって本当に良かった。" },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "はい。<b>家族にも MH の検査</b>を勧めましょう。<b>遺伝性の病気</b>だから、子どもさんも同じ体質かもしれない。" },
-      { type: "roomComplete", outcome: "初期対応セット完遂 → 眠らせたまま ICU 搬送。回復後、家族にも MH 検査を勧める。" }
+      { type: "roomComplete", outcome: "応援全員招集 → 初期対応セット完遂 → 眠らせたまま ICU 搬送。家族にも MH 検査を勧める。" }
     ]
   },
 
@@ -468,7 +485,7 @@ const ROOMS = [
       avatar: "🧑",
       name: "鈴木さん(28歳男性)",
       detail: "既往:なし・スポーツマン",
-      surgery: "整形外科 骨折内固定術・術中"
+      surgery: "整形外科 骨折内固定術・術中<br>麻酔法:<b>全身麻酔(セボフルラン)+ 神経ブロック</b>"
     },
     initialVitals: { hr: 72, sbp: 118, dbp: 72, spo2: 99, etco2: 36, bis: 45, temp: 36.6 },
     stages: [
@@ -515,7 +532,7 @@ const ROOMS = [
       avatar: "👵",
       name: "佐藤さん(72歳女性)",
       detail: "既往:高血圧・軽度不安障害",
-      surgery: "眼科 白内障手術・<b>局所麻酔(痛み止め注射のみ)+ 意識あり</b>"
+      surgery: "眼科 白内障手術・術中<br>麻酔法:<b>局所麻酔(目に痛み止め注射のみ、意識あり)</b>"
     },
     // BIS 92 = 起きてる状態(鎮静剤はまだ使ってない)
     initialVitals: { hr: 88, sbp: 160, dbp: 95, spo2: 98, etco2: 38, bis: 92, temp: 36.6 },
@@ -574,7 +591,7 @@ const ROOMS = [
       avatar: "👶",
       name: "ゆうくん(5歳男児)",
       detail: "既往:健康・アレルギー既往なし",
-      surgery: "扁桃摘出術・全身麻酔導入直後"
+      surgery: "扁桃摘出術・全身麻酔導入直後<br>麻酔法:<b>全身麻酔(セボフルラン+筋弛緩薬ロクロニウム)</b>"
     },
     initialVitals: { hr: 100, sbp: 92, dbp: 55, spo2: 99, etco2: 35, bis: 45, temp: 36.6 },
     stages: [
@@ -611,14 +628,14 @@ const ROOMS = [
       { type: "question",
         prompt: "Q3:アナフィラキシーへの<b>特効薬</b>は?",
         choices: [
-          { text: "アドレナリン(小児は 0.01 mg/kg 筋注)", icon: "💉", correct: true },
+          { text: "アドレナリン(希釈して静脈内投与、少量ずつ)", icon: "💉", correct: true },
           { text: "抗ヒスタミン薬だけ", icon: "💊", correct: false },
           { text: "輸液だけ大量に", icon: "💧", correct: false }
         ],
         correctTitle: "正解! ✅",
-        correctBody: "<b>アドレナリンが命綱</b>。<br>小児は体重換算(<b>0.01 mg/kg</b>)。5 歳(約 20kg)なら 0.2mg。すぐ効いて、血圧と気道が回復。<br>手術は延期、後日アレルギー検査で原因を特定。<b>家族と学校に必ず伝える</b>。",
+        correctBody: "<b>アドレナリンが命綱</b>。<br>👉 <b>点滴がない時や病院外</b>(空港・レストラン・学校など)では → <b>筋肉注射</b>(小児 0.01 mg/kg)<br>👉 <b>全身麻酔中</b>は血圧が非常に下がることが多く、<b>点滴がすでに確保されている</b> → <b>直接血管の中(静脈)に投与</b> できる。<br>ただし静注は効き目が強すぎて危ないので、<b>必ず希釈して少量ずつ</b> 使うのが大切。<br><br>手術は延期、後日アレルギー検査で原因を特定。<b>家族と学校に必ず伝える</b>。",
         wrongTitle: "危険!",
-        wrongBody: "抗ヒスタミンや輸液だけでは<b>命は助からない</b>。アナフィラキシーは <b>アドレナリンが第一選択</b>。数分の遅れが致命的。"
+        wrongBody: "抗ヒスタミンや輸液だけでは<b>命は助からない</b>。アナフィラキシーは <b>アドレナリンが第一選択</b>。<br>全身麻酔中は点滴があるので <b>希釈して静脈内投与</b>、院外や点滴なしなら <b>筋肉注射</b>。"
       },
       { type: "narration", text: "アドレナリンを筋注。ゆっくり効いてきます…" },
       { type: "vitalsChange", vitals: { hr: 135, sbp: 78, dbp: 48, spo2: 95 }, duration: MEDIUM },
@@ -636,20 +653,20 @@ const ROOMS = [
       avatar: "🤱",
       name: "○○さん(32歳女性)",
       detail: "初産・帝王切開直後・赤ちゃんは無事誕生",
-      surgery: "帝王切開術・分娩終了直後"
+      surgery: "帝王切開術・分娩終了直後<br>麻酔法:<b>脊髄くも膜下麻酔(下半身のみ麻酔、意識あり)</b>"
     },
-    initialVitals: { hr: 88, sbp: 118, dbp: 72, spo2: 99, etco2: 35, bis: 45, temp: 36.4 },
+    initialVitals: { hr: 88, sbp: 118, dbp: 72, spo2: 99, etco2: 35, bis: 92, temp: 36.4 },
     stages: [
-      { type: "narration", text: "OR6 に入りました。<br>32 歳女性、初産の帝王切開で、<b>赤ちゃんは無事に誕生</b>。<br>お母さんは目覚めて、赤ちゃんと面会しました。" },
+      { type: "narration", text: "OR6 に入りました。<br>32 歳女性、初産の帝王切開で、<b>赤ちゃんは無事に誕生</b>しました。<br>麻酔は <b>脊髄くも膜下麻酔</b>(下半身のみ麻酔)。<b>意識はハッキリしています</b>(BIS 92)。" },
       { type: "dialogue", speaker: "○○さん(お母さん)", side: "other", text: "先生、ありがとうございます…赤ちゃん、可愛い…" },
       { type: "narration", text: "赤ちゃんは NICU に移され、お母さんの手術も終わろうとしていた、その時…" },
       { type: "vitalsChange", vitals: { hr: 100, sbp: 105, dbp: 62 }, duration: MEDIUM },
       { type: "narration", text: "産科医「先生!子宮からの<b>出血が止まらない</b>!」" },
-      { type: "vitalsChange", vitals: { hr: 115, sbp: 90, dbp: 55 }, duration: MEDIUM },
-      { type: "narration", text: "「1500mL 超えました…まだ出続けてる」" },
-      { type: "vitalsChange", vitals: { hr: 128, sbp: 78, dbp: 45, spo2: 96 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { hr: 115, sbp: 90, dbp: 55, bis: 82 }, duration: MEDIUM },
+      { type: "narration", text: "「1500mL 超えました…まだ出続けてる」<br>お母さんの反応が少し鈍くなってきた(BIS も少し下がった)。" },
+      { type: "vitalsChange", vitals: { hr: 128, sbp: 78, dbp: 45, spo2: 96, bis: 55 }, duration: MEDIUM },
       { type: "alert", text: "ピロピロ!! 緊急!! 出血 3000mL!" },
-      { type: "narration", text: "産科医「<b>すでに 3000mL の出血</b>!<b>お母さんの意識が薄れています</b>!」" },
+      { type: "narration", text: "産科医「<b>すでに 3000mL の出血</b>!<b>お母さんの意識が薄れています</b>(BIS 55)!」" },
       { type: "question",
         prompt: "Q1:分娩後の大量出血。<b>最優先の対応は?</b>",
         choices: [
@@ -663,10 +680,10 @@ const ROOMS = [
         wrongBody: "子宮からの出血は<b>圧迫では止まらない</b>。<br>昇圧薬だけでは血液がない状態で血管を締めるだけ。<b>まず輸血+子宮収縮薬</b>が必須。躊躇は死に直結。"
       },
       { type: "narration", text: "総勢 10 人以上のスタッフが集結。輸血、子宮収縮薬、太いライン追加、みんなで対応!" },
-      { type: "vitalsChange", vitals: { hr: 118, sbp: 88, dbp: 52 }, duration: MEDIUM },
-      { type: "vitalsChange", vitals: { hr: 105, sbp: 98, dbp: 60, spo2: 98 }, duration: MEDIUM },
-      { type: "vitalsChange", vitals: { hr: 95, sbp: 108, dbp: 68, spo2: 99 }, duration: MEDIUM },
-      { type: "narration", text: "少しずつ血圧が戻ってきました。出血もようやく止まりそうです。" },
+      { type: "vitalsChange", vitals: { hr: 118, sbp: 88, dbp: 52, bis: 62 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { hr: 105, sbp: 98, dbp: 60, spo2: 98, bis: 72 }, duration: MEDIUM },
+      { type: "vitalsChange", vitals: { hr: 95, sbp: 108, dbp: 68, spo2: 99, bis: 80 }, duration: MEDIUM },
+      { type: "narration", text: "少しずつ血圧が戻ってきました。出血もようやく止まりそうです。<br>お母さんの意識もハッキリしてきた(BIS 80台に回復)。" },
       { type: "vitalsChange", vitals: { hr: 88, sbp: 115, dbp: 72 }, duration: MEDIUM },
       { type: "narration", text: "○○さんの意識が戻ります。「…先生…赤ちゃん…?」" },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "赤ちゃんは元気ですよ。お母さんも命は助かりました。明日には抱っこできますからね。" },
@@ -697,10 +714,12 @@ let state = {
   correctCount: 0,
   totalQuestions: 0,
   highlightTarget: null,
-  ecgMode: null,   // null | "st_elevation" | "vf"
+  ecgMode: null,   // null | "st_elevation" | "vf" | "hyperK"
   bpUnmeasurable: false,
   bpMeasuring: false,
-  spo2Unmeasurable: false
+  spo2Unmeasurable: false,
+  _answered: false,
+  _advancing: false
 };
 
 let audioCtx = null;
@@ -863,6 +882,21 @@ function ecgSTVal(phase) {
   if (phase >= 0.29 && phase < 0.42) return base + 0.28;
   return base;
 }
+// 高K血症:T波が高く尖る(テント状T波)
+function ecgHyperKVal(phase) {
+  if (phase < 0.10) return 0;
+  if (phase < 0.16) { const x = (phase - 0.10) / 0.06; return Math.sin(x * Math.PI) * 0.15; }
+  if (phase < 0.22) return 0;
+  if (phase < 0.235) return -((phase - 0.22) / 0.015) * 0.15;
+  if (phase < 0.250) return -0.15 + ((phase - 0.235) / 0.015) * 1.25;
+  if (phase < 0.270) return 1.10 - ((phase - 0.250) / 0.020) * 1.55;
+  if (phase < 0.290) return -0.45 + ((phase - 0.270) / 0.020) * 0.45;
+  if (phase < 0.42) return 0;
+  // T波を大きく尖らせる
+  if (phase < 0.50) { const x = (phase - 0.42) / 0.08; return Math.sin(x * Math.PI / 2) * 0.75; }
+  if (phase < 0.58) { const x = (phase - 0.50) / 0.08; return Math.cos(x * Math.PI / 2) * 0.75; }
+  return 0;
+}
 function ecgVFVal(t) {
   return (Math.sin(t * 2 * Math.PI * 6) * 0.3 + Math.sin(t * 2 * Math.PI * 13 + 1.3) * 0.4 + (Math.random() - 0.5) * 0.3) * 0.6;
 }
@@ -975,7 +1009,9 @@ function waveLoop() {
       drawWave(waves.ecg, "#00ff66", (ph, t) => ecgVFVal(t), 1, SPEED_FAST);
     } else if (v.hr > 0) {
       const p = 60 / v.hr;
-      const ecgFn = state.ecgMode === "st_elevation" ? ecgSTVal : ecgVal;
+      let ecgFn = ecgVal;
+      if (state.ecgMode === "st_elevation") ecgFn = ecgSTVal;
+      else if (state.ecgMode === "hyperK") ecgFn = ecgHyperKVal;
       drawWave(waves.ecg, "#00ff66", ecgFn, p, SPEED_FAST);
       const pp = Math.min(1.0, Math.max(0.2, ((v.sbp || 120) - (v.dbp || 70)) / 50));
       drawWave(waves.pleth, "#00d4ff", (ph) => plethVal(ph, pp), p, SPEED_FAST);
@@ -1278,10 +1314,10 @@ function runStage(idx) {
       break;
 
     case "nibpMeasure":
-      // マンシェット血圧測定シミュレーション(波形は維持)
+      // マンシェット血圧測定シミュレーション(結果は測定完了後に表示)
       renderRoomFrame(`
         <div class="stage-card narration">
-          <div class="stage-body">🩸 ${stage.msg || "血圧計が測定中です..."}</div>
+          <div class="stage-body" id="nibpBody">🩸 血圧測定中...(マンシェットが締め付けています)</div>
           <button class="next-btn" id="nibpNext" disabled>測定中...</button>
         </div>
       `);
@@ -1299,6 +1335,12 @@ function runStage(idx) {
         updateMonitorNumbers();
         playNibpDone();
         if (stage.alarmAfter) setTimeout(playAlert, 200);
+        // 結果テロップに置き換え
+        const body = document.getElementById("nibpBody");
+        if (body) {
+          const result = stage.resultMsg || `血圧 ${stage.target.sbp}/${stage.target.dbp}`;
+          body.innerHTML = `🩸 <b>${result}</b>`;
+        }
         const btn = document.getElementById("nibpNext");
         if (btn) {
           btn.disabled = false;
@@ -1360,6 +1402,10 @@ function runStage(idx) {
 }
 
 function nextStage() {
+  if (state._advancing) return;   // 二重クリック防止
+  state._advancing = true;
+  setTimeout(() => { state._advancing = false; }, 300);
+  state._answered = false;         // 新ステージで回答フラグリセット
   const room = ROOMS[state.currentRoomIdx];
   if (state.currentStageIdx + 1 < room.stages.length) {
     runStage(state.currentStageIdx + 1);
@@ -1369,6 +1415,8 @@ function nextStage() {
 }
 
 function selectChoice(idx) {
+  if (state._answered) return;
+  state._answered = true;
   const room = ROOMS[state.currentRoomIdx];
   const stage = room.stages[state.currentStageIdx];
   const choice = stage.choices[idx];
@@ -1388,9 +1436,14 @@ function selectChoice(idx) {
         <button class="next-btn" onclick="nextStage()">次へ →</button>
       </div>
     `;
-    document.getElementById("choices").insertAdjacentHTML("afterend", feedbackHtml);
-    document.querySelector(".feedback").scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 800);
+    const choicesEl = document.getElementById("choices");
+    if (choicesEl) {
+      choicesEl.insertAdjacentHTML("afterend", feedbackHtml);
+      choicesEl.style.display = "none";  // 選択肢を隠して二重タップ防止
+    }
+    const fb = document.querySelector(".feedback");
+    if (fb) fb.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 900);
 }
 
 function toggleMultiChoice(idx) {
@@ -1412,6 +1465,8 @@ function toggleMultiChoice(idx) {
 }
 
 function submitMultiChoice() {
+  if (state._answered) return;
+  state._answered = true;
   const room = ROOMS[state.currentRoomIdx];
   const stage = room.stages[state.currentStageIdx];
   const selected = state._multiSelected || new Set();
@@ -1445,9 +1500,14 @@ function submitMultiChoice() {
         <button class="next-btn" onclick="nextStage()">次へ →</button>
       </div>
     `;
-    document.getElementById("choices").insertAdjacentHTML("afterend", feedbackHtml);
-    document.querySelector(".feedback").scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 800);
+    const choicesEl = document.getElementById("choices");
+    if (choicesEl) {
+      choicesEl.insertAdjacentHTML("afterend", feedbackHtml);
+      choicesEl.style.display = "none";
+    }
+    const fb = document.querySelector(".feedback");
+    if (fb) fb.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 900);
 }
 
 function showAlertOverlay(text, callback) {
