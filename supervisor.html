@@ -453,13 +453,13 @@ const ROOMS = [
         prompt: "Q3:MH と診断!<b>一番最初にやること</b>は?",
         choices: [
           { text: "応援を呼ぶ(みんなに助けを求める)", icon: "📢", correct: true },
-          { text: "セボフルランを止める", icon: "🛑", correct: false },
-          { text: "冷却輸液を全開で流す", icon: "❄️", correct: false }
+          { text: "一人で解決しようとする", icon: "🙅", correct: false },
+          { text: "部屋を離れて休憩する", icon: "🚪", correct: false }
         ],
         correctTitle: "正解! 📢",
         correctBody: "<b>まず「応援を呼ぶ」!!</b> これが一番大事。<br>MH は 1 人では絶対に対応できません。同時にたくさんのこと(セボ中止・麻酔器交換・ダントロレン・冷却・K補正)をやる必要があるので、<b>チーム全員の力</b> が必要。<br>助けを呼ぶ勇気=命を救う第一歩。",
-        wrongTitle: "惜しい!",
-        wrongBody: "セボフルラン中止も冷却も大事だけど、<b>一番最初は「応援を呼ぶ」</b>。<br>MH は 1 人では対応不可能。同時多発でやることがたくさんあるので、<b>チーム全員の力</b> が必要。"
+        wrongTitle: "危険!",
+        wrongBody: "<b>一人で解決や部屋を離れるのは絶対NG</b>。<br>MH は 1 人では対応不可能な緊急事態。同時多発でやること(セボ中止・麻酔器交換・ダントロレン・冷却・K補正)がたくさんあるので、<b>まず応援を呼んでチーム全員の力</b> を集めるのが正解。"
       },
       { type: "narration", text: "MH への <b>初期対応セット</b> を進めます。ひとつずつ確認していこう。" },
       { type: "narration", text: "① <b>応援を全員招集!</b> 看護師、麻酔科の同僚、上級医、みんな来て!" },
@@ -1308,6 +1308,19 @@ function runStage(idx) {
         state.spo2Unmeasurable = stage.vitals.spo2Unmeasurable;
       }
       if (stage.ecgModeAfter !== undefined) state.ecgMode = stage.ecgModeAfter;
+      // 観察に集中させる:今表示中の「次へ」ボタンを全て非表示にする
+      document.querySelectorAll('.next-btn').forEach(btn => {
+        btn.style.display = 'none';
+      });
+      // 「モニターを観察中…」の小さな表示を追加
+      const currentCard = document.querySelector('.stage-card');
+      if (currentCard && !document.getElementById('observeIndicator')) {
+        const ind = document.createElement('div');
+        ind.id = 'observeIndicator';
+        ind.style.cssText = 'margin-top:10px;padding:8px 12px;background:#fff3cd;color:#856404;border-radius:8px;text-align:center;font-weight:600;font-size:13px;';
+        ind.innerHTML = '🔬 モニターを観察中…(自動で進みます)';
+        currentCard.appendChild(ind);
+      }
       animateVitals(stage.vitals, stage.duration || SLOW, () => {
         setTimeout(nextStage, 400);
       });
