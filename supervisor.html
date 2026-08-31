@@ -637,7 +637,7 @@ const ROOMS = [
         wrongTitle: "危険!",
         wrongBody: "抗ヒスタミンや輸液だけでは<b>命は助からない</b>。アナフィラキシーは <b>アドレナリンが第一選択</b>。<br>全身麻酔中は点滴があるので <b>希釈して静脈内投与</b>、院外や点滴なしなら <b>筋肉注射</b>。"
       },
-      { type: "narration", text: "アドレナリンを筋注。ゆっくり効いてきます…" },
+      { type: "narration", text: "アドレナリンを希釈して静脈内投与。ゆっくり効いてきます…" },
       { type: "vitalsChange", vitals: { hr: 135, sbp: 78, dbp: 48, spo2: 95 }, duration: MEDIUM },
       { type: "vitalsChange", vitals: { hr: 120, sbp: 90, dbp: 55, spo2: 97, etco2: 33 }, duration: MEDIUM },
       { type: "vitalsChange", vitals: { hr: 110, sbp: 100, dbp: 62, spo2: 99, etco2: 35 }, duration: MEDIUM },
@@ -681,9 +681,11 @@ const ROOMS = [
       },
       { type: "narration", text: "総勢 10 人以上のスタッフが集結。輸血、子宮収縮薬、太いライン追加、みんなで対応!" },
       { type: "vitalsChange", vitals: { hr: 118, sbp: 88, dbp: 52, bis: 62 }, duration: MEDIUM },
+      { type: "narration", text: "少しずつ効いてきています…血圧が上がり始めた。" },
       { type: "vitalsChange", vitals: { hr: 105, sbp: 98, dbp: 60, spo2: 98, bis: 72 }, duration: MEDIUM },
+      { type: "narration", text: "お母さんの意識も戻ってきた(BIS 72)。もう少しで安定します。" },
       { type: "vitalsChange", vitals: { hr: 95, sbp: 108, dbp: 68, spo2: 99, bis: 80 }, duration: MEDIUM },
-      { type: "narration", text: "少しずつ血圧が戻ってきました。出血もようやく止まりそうです。<br>お母さんの意識もハッキリしてきた(BIS 80台に回復)。" },
+      { type: "narration", text: "血圧も心拍もほぼ正常範囲に。出血もようやく止まりそうです。<br>お母さんの意識もハッキリしてきた(BIS 80台に回復)。" },
       { type: "vitalsChange", vitals: { hr: 88, sbp: 115, dbp: 72 }, duration: MEDIUM },
       { type: "narration", text: "○○さんの意識が戻ります。「…先生…赤ちゃん…?」" },
       { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "赤ちゃんは元気ですよ。お母さんも命は助かりました。明日には抱っこできますからね。" },
@@ -1217,6 +1219,8 @@ function enterRoom(idx) {
   state.bpUnmeasurable = false;
   state.bpMeasuring = false;
   state.spo2Unmeasurable = false;
+  state._answered = false;
+  state._advancing = false;
   const room = ROOMS[idx];
   state.vitals = { ...room.initialVitals };
   runStage(0);
@@ -1300,7 +1304,7 @@ function runStage(idx) {
       showAlertOverlay(stage.text, () => nextStage());
       break;
 
-    case "vitalsChange":
+    case "vitalsChange": {
       if (stage.vitals && stage.vitals.bpUnmeasurable !== undefined) {
         state.bpUnmeasurable = stage.vitals.bpUnmeasurable;
       }
@@ -1308,23 +1312,29 @@ function runStage(idx) {
         state.spo2Unmeasurable = stage.vitals.spo2Unmeasurable;
       }
       if (stage.ecgModeAfter !== undefined) state.ecgMode = stage.ecgModeAfter;
-      // 観察に集中させる:今表示中の「次へ」ボタンを全て非表示にする
-      document.querySelectorAll('.next-btn').forEach(btn => {
-        btn.style.display = 'none';
-      });
-      // 「モニターを観察中…」の小さな表示を追加
-      const currentCard = document.querySelector('.stage-card');
-      if (currentCard && !document.getElementById('observeIndicator')) {
-        const ind = document.createElement('div');
-        ind.id = 'observeIndicator';
-        ind.style.cssText = 'margin-top:10px;padding:8px 12px;background:#fff3cd;color:#856404;border-radius:8px;text-align:center;font-weight:600;font-size:13px;';
-        ind.innerHTML = '🔬 モニターを観察中…(自動で進みます)';
-        currentCard.appendChild(ind);
+      // 前のカードを「観察中カード」で完全置き換え(ボタンを物理的に消す)
+      // モニター DOM は触らないので波形は保持される
+      const observeHtml = `
+        <div class="stage-card narration" style="background: linear-gradient(to right, #fff3cd 0%, white 100%); border-left-color: #ffc107;">
+          <div class="stage-body" style="text-align: center; color: #856404; font-weight: 700;">
+            🔬 モニターを観察してください…(自動で進みます)
+          </div>
+        </div>
+      `;
+      const oldCards = document.querySelectorAll('.stage-card, .feedback, .question-prompt, .choices');
+      if (oldCards.length > 0) {
+        // 最初のを observe に置き換え、残りは削除
+        oldCards[0].outerHTML = observeHtml;
+        for (let i = 1; i < oldCards.length; i++) oldCards[i].remove();
+      } else {
+        // カードがなければ追加
+        document.getElementById('app').insertAdjacentHTML('beforeend', observeHtml);
       }
       animateVitals(stage.vitals, stage.duration || SLOW, () => {
         setTimeout(nextStage, 400);
       });
       break;
+    }
 
     case "nibpMeasure":
       // マンシェット血圧測定シミュレーション(結果は測定完了後に表示)
