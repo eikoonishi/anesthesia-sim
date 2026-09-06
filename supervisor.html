@@ -492,13 +492,17 @@ const ROOMS = [
       avatar: "👩",
       name: "山田美穂さん(40歳女性)",
       detail: "既往:なし・健康・<b>初めての全身麻酔</b>",
-      surgery: "腹腔鏡下 胆嚢摘出術・術中<br>麻酔法:<b>全身麻酔(吸入麻酔薬セボフルラン使用)</b>"
+      surgery: "腹腔鏡下 胆嚢摘出術・術中<br>麻酔法:<b>全身麻酔</b>(セボフルラン+レミフェンタニル+ロクロニウム)"
     },
     staff: { anes: "ひろせ先生", nurse: "なとりさん" },
     initialVitals: { hr: 78, sbp: 128, dbp: 78, spo2: 99, etco2: 38, bis: 45, temp: 36.5 },
     stages: [
-      { type: "narration", text: "OR2 に入りました。<br><b>山田美穂さん、40歳女性</b>。健康な人で、<b>今日が人生初めての全身麻酔</b>です。<br>麻酔は <b>セボフルラン</b>(吸入麻酔薬)で維持中。" },
-      { type: "narration", text: "手術は順調に進んでいます。<br>SVは他の部屋も見に行きましょう…と、その前にモニターを一度チェック。" },
+      { type: "narration", text: "OR2 に入りました。<br><b>山田美穂さん、40歳女性</b>。健康な人で、<b>今日が人生初めての全身麻酔</b>です。<br>麻酔は <b>セボフルラン</b>(眠るガスの麻酔薬)と <b>レミフェンタニル</b>(痛み止めの麻薬)と <b>ロクロニウム</b>(筋肉を弛緩させる筋弛緩薬)で維持。" },
+      { type: "dialogue", speaker: "ひろせ先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "全身麻酔を導入したところで、これから手術開始です。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "そうですか。困ったことがあったら、コールしてください。" },
+      { type: "narration", text: "SV はモニターを確認して、他の部屋へ行こうとしていた。<br>モニターを確認すると…" },
       // ここから密かに体温+EtCO2 上昇(narrationでは言及しない)
       { type: "vitalsChange", vitals: { temp: 37.2, etco2: 41 }, duration: SLOW },
       { type: "vitalsChange", vitals: { temp: 37.7, etco2: 46 }, duration: SLOW },
@@ -523,7 +527,10 @@ const ROOMS = [
       { type: "alert", text: "ピロロン♪ 体温 40℃・EtCO₂ 60 超え!" },
       { type: "vitalsChange", vitals: { hr: 135, etco2: 65, temp: 41.0 }, duration: MEDIUM },
       { type: "narration", text: "体温が 41℃!EtCO₂ もどんどん上がる…心電図の <b>T波が異常に高く尖ってきた</b>(=カリウムが上がっているサイン)。<br>これはもしかして…" },
-      { type: "narration", text: "看護師「先生!<b>尿の色が赤褐色(コーラ色)</b>です!採血で <b>K(カリウム)が 6.0</b> に上がってます!」" },
+      { type: "dialogue", speaker: "なとりさん(看護師)", side: "other", icon: "👩‍⚕️",
+        text: "先生!<b>尿の色が赤褐色(コーラ色)</b>です!採血で <b>K(カリウム)が 6.0</b> に上がってます!" },
+      { type: "dialogue", speaker: "ひろせ先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "SV、<b>急激な体温上昇</b>、<b>呼気二酸化炭素の上昇</b>、そして<b>心電図変化でカリウム上昇</b>が疑われる。さらに<b>尿の色が赤褐色</b>。患者さんは、<b>初めての手術</b>だそうです。" },
       { type: "question",
         prompt: "Q2:体温 41℃ + EtCO₂↑↑ + 赤褐色の尿 + 高K + 心電図T波↑。<b>何を疑う?</b>",
         choices: [
@@ -549,7 +556,12 @@ const ROOMS = [
         wrongTitle: "危険!",
         wrongBody: "<b>一人で解決や部屋を離れるのは絶対NG</b>。<br>MH は 1 人では対応不可能な緊急事態。同時多発でやること(セボ中止・麻酔器交換・ダントロレン・冷却・K補正)がたくさんあるので、<b>まず応援を呼んでチーム全員の力</b> を集めるのが正解。"
       },
-      { type: "narration", text: "MH への <b>初期対応セット</b> を進めます。ひとつずつ確認していこう。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "MH への <b>初期対応セット</b> を進めます。まず、<b>応援を呼んで人を集める</b>。そして、一つずつ確認していこう。<b>ひろせ先生、コマンダー</b>です。" },
+      { type: "dialogue", speaker: "ひろせ先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "わかりました。外科の先生、<b>悪性高熱の可能性</b>があります。<b>手術は中止</b>してください。" },
+      { type: "dialogue", speaker: "外科医", side: "other", icon: "🔪",
+        text: "わかりました。<b>外科も手伝います</b>。" },
       { type: "narration", text: "① <b>応援を全員招集!</b> 看護師、麻酔科の同僚、上級医、みんな来て!" },
       { type: "narration", text: "② <b>セボフルラン中止</b>(トリガー除去)+ TIVA(点滴麻酔)へ切替。" },
       { type: "narration", text: "③ <b>麻酔器を交換</b>(装置内に残ったセボフルランを完全に排除)。" },
@@ -557,11 +569,12 @@ const ROOMS = [
       { type: "narration", text: "⑤ <b>ダントロレン(特効薬)を静脈投与</b>。2.5 mg/kg を bolus、必要なら追加(最大 10 mg/kg)。" },
       { type: "narration", text: "⑥ <b>全身冷却</b>。冷却輸液+氷嚢+体表冷却。" },
       { type: "narration", text: "⑦ <b>カリウム補正</b>。Ca 剤・グルコース+インスリン療法・重曹などで K を下げて心臓を守る。" },
-      { type: "narration", text: "初期対応が一通り終わりました。<br>体温や EtCO₂ はまだ落ち着かない — MH の反応はゆっくり治まります。<b>ここで焦って麻酔を覚まさない</b>のがポイント。" },
-      { type: "narration", text: "「手術は中止、<b>麻酔で眠らせたまま、ICU へ搬送だ!</b>」" },
+      { type: "narration", text: "初期対応が一通り終わりました。<b>麻酔科医、外科医、スタッフ全員で進めました。</b><br>体温や EtCO₂ はまだ落ち着かない — MH の反応はゆっくり治まります。<b>ここで焦って麻酔を覚まさない</b>のがポイント。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "<b>麻酔で眠らせたまま、ICU へ搬送だ!</b>" },
       { type: "narration", text: "ICU では、落ち着くまで <b>麻酔を続けたまま管理</b>。ダントロレンは 24 時間継続、K・体温・尿量を数時間ごとにモニタ。<br>命の危険を脱するまで、静かにみんなで守ります。" },
-      { type: "dialogue", speaker: "外科医", side: "other", text: "ご家族に説明してきます。命が助かって本当に良かった。" },
-      { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "はい。<b>家族にも MH の検査</b>を勧めましょう。<b>遺伝性の病気</b>だから、子どもさんも同じ体質かもしれない。" },
+      { type: "dialogue", speaker: "外科医", side: "other", icon: "🔪", text: "ご家族に説明してきます。命が助かって本当に良かった。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺", text: "はい。<b>家族にも MH の検査</b>を勧めましょう。<b>遺伝性の病気</b>だから、子どもさんも同じ体質かもしれない。" },
       { type: "roomComplete", outcome: "応援全員招集 → 初期対応セット完遂 → 眠らせたまま ICU 搬送。家族にも MH 検査を勧める。" }
     ]
   },
@@ -573,18 +586,22 @@ const ROOMS = [
       avatar: "🧑",
       name: "鈴木健太さん(28歳男性)",
       detail: "既往:なし・スポーツマン",
-      surgery: "整形外科 骨折内固定術・術中<br>麻酔法:<b>全身麻酔(セボフルラン)+ 神経ブロック</b>"
+      surgery: "整形外科 腓骨遠位端骨折 観血的整復固定術・術中<br>麻酔法:<b>全身麻酔(セボフルラン)+ 神経ブロック</b>"
     },
     staff: { anes: "いずみ先生", nurse: "かわうちさん" },
+    ecgMode: "brugada",   // 入室時から密かにサドルバック型 ST 上昇を出しておく
     initialVitals: { hr: 72, sbp: 118, dbp: 72, spo2: 99, etco2: 36, bis: 45, temp: 36.6 },
     stages: [
       { type: "narration", text: "OR3 に入りました。<br><b>鈴木健太さん、28 歳男性</b>、健康なスポーツマン。骨折の手術中です。" },
-      { type: "narration", text: "順調に経過していたところ…" },
+      { type: "dialogue", speaker: "いずみ先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "SV、お疲れ様です。<b>腓骨遠位端骨折</b>です。<b>全身麻酔と神経ブロック</b>で管理しています。" },
       { type: "alert",
         text: "ピロピロピロ!!! 緊急アラーム!",
         vitalsAfter: { hr: 0, etco2: 12, bpUnmeasurable: true, spo2Unmeasurable: true },
         ecgMode: "vf" },
-      { type: "narration", text: "看護師「先生!心電図が乱れてバラバラ!<b>脈が触れません!</b>」<br>モニターは <b>VF(心室細動)</b>!血圧も酸素も測定不能です。" },
+      { type: "dialogue", speaker: "かわうちさん(看護師)", side: "other", icon: "👩‍⚕️",
+        text: "先生!心電図が乱れてバラバラ!<b>脈が触れません!</b>" },
+      { type: "narration", text: "モニターは <b>VF(心室細動)</b>!血圧も酸素も測定不能です。" },
       { type: "question",
         prompt: "Q1:VF!<b>1 秒でも早く何をする?</b>",
         choices: [
@@ -597,19 +614,24 @@ const ROOMS = [
         wrongTitle: "危険!",
         wrongBody: "VF では <b>薬より先に電気ショック</b>。抗不整脈薬は DC で戻らない時の追加。<br>疑わしきは治療 — 迷ってる時間はない。"
       },
-      { type: "narration", text: "DC 150J、実施!<br>「みんな離れてー!」「ドン!!」" },
+      { type: "dialogue", speaker: "いずみ先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "DC 150J、実施します。<b>みんな離れてー!</b>" },
+      { type: "narration", text: "<b>ドン!!</b>" },
       { type: "narration", text: "<b>胸部圧迫(胸骨圧迫)を続けます…</b>" },
       { type: "vitalsChange",
         vitals: { hr: 78, spo2: 98, etco2: 35, spo2Unmeasurable: false },
         duration: QUICK,
-        ecgModeAfter: null },
-      { type: "narration", text: "<b>脈が触れます!</b>心電図が正常に戻り、酸素飽和度も戻ってきた!" },
+        ecgModeAfter: "brugada" },   // 洞調律に戻るが、サドルバック型はそのまま残る
+      { type: "narration", text: "<b>脈が触れます!</b>心電図が <b>洞調律</b> に戻り、酸素飽和度も戻ってきた!" },
       { type: "narration", text: "血圧を測ってみましょう。マンシェットを起動…" },
       { type: "nibpMeasure", target: { sbp: 110, dbp: 80 }, msg: "血圧を測定します..." },
       { type: "narration", text: "<b>血圧 110/80 !</b> 洞調律に回復!救命成功!" },
       { type: "narration", text: "手術は中止、循環器内科でしっかり調べたところ…<b>ブルガダ症候群</b>と判明。<br>若い健康な人でも突然死する遺伝性の病気で、心電図に特徴的な変化があります。" },
-      { type: "dialogue", speaker: "循環器内科の先生", side: "other", text: "植え込み型除細動器(ICD)の適応かもしれません。しっかりフォローします。" },
-      { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "ありがとうございます。<b>ご家族にも心電図検査</b> を勧めましょう。" },
+      { type: "narration", text: "🧠 <b>もう一度モニターの心電図を見てみましょう。</b><br>心臓がギュッと縮むときの<b>大きな波(QRS)</b>。そのすぐ後ろは、ふつうならまっすぐな線に戻ります。<br>ところが鈴木健太さんは、<b>いったんピョコンと持ち上がって、少し下がって、もう一度ゆるく盛り上がって</b>います。<br>横から見ると、馬に乗せる <b>鞍(くら)</b> のような形。これを <b>サドルバック型</b> と呼びます。<b>ブルガダ症候群</b> の人に見られる、特徴的なサインです。" },
+      { type: "narration", text: "📝 <b>今回の流れについて</b><br>このゲームでは、鈴木健太さんの心電図を <b>入室したときからサドルバック型</b> で表示していました。<br>実際には、<b>手術の前にこの心電図が見つかった人は、循環器内科でくわしく調べてもらい、きちんと診断がつくことがほとんど</b>です。今回は <b>トレーニングのために、あえてこの流れ</b> にしています。" },
+      { type: "narration", text: "そのうえで、大事なことがひとつ。<br><b>術前の診察では何も見つからなくても、手術中に初めて異常が現れることは、実際にあります。</b><br>だからこそ麻酔科医は、手術のあいだじゅう <b>ずっとモニターから目を離しません</b>。今日の鈴木健太さんのように、<b>気づいた瞬間に動けるかどうか</b>で結果が変わるからです。" },
+      { type: "dialogue", speaker: "循環器内科の先生", side: "other", icon: "🫀", text: "植え込み型除細動器(ICD)の適応かもしれません。しっかりフォローします。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺", text: "ありがとうございます。<b>ご家族にも心電図検査</b> を勧めましょう。" },
       { type: "roomComplete", outcome: "DC で救命、術後にブルガダ症候群と診断。ICD 検討。" }
     ]
   },
@@ -623,7 +645,7 @@ const ROOMS = [
       detail: "既往:高血圧・軽度不安障害",
       surgery: "眼科 白内障手術・術中<br>麻酔法:<b>局所麻酔(目に痛み止め注射のみ、意識あり)</b>"
     },
-    staff: { anes: "わかばやし先生", nurse: "さくらさん" },
+    staff: { nurse: "さくらさん" },   // 局所麻酔の手術なので、担当麻酔科医はついていない
     // BIS 92 = 起きてる状態(鎮静剤はまだ使ってない)
     initialVitals: { hr: 88, sbp: 160, dbp: 95, spo2: 98, etco2: 38, bis: 92, temp: 36.6 },
     stages: [
@@ -633,7 +655,8 @@ const ROOMS = [
       { type: "nibpMeasure", target: { sbp: 175, dbp: 102 }, msg: "血圧測定中…" },
       { type: "narration", text: "175/102 まで上がった。少し嫌な感じ。もう一度測ります…" },
       { type: "nibpMeasure", target: { sbp: 190, dbp: 110 }, msg: "血圧測定中…", alarmAfter: true },
-      { type: "narration", text: "看護師「190/110!患者さんが『怖い、怖い』とおっしゃってます。動きそうで…先生、来てくれませんか?」" },
+      { type: "dialogue", speaker: "さくらさん(看護師)", side: "other", icon: "👩‍⚕️",
+        text: "<b>190/110!</b>患者さんが『怖い、怖い』とおっしゃってます。動きそうで…先生、来てくれませんか?" },
       { type: "question",
         prompt: "Q1:意識のある患者さんの高血圧+不安。<b>まず何をする?</b>",
         choices: [
@@ -646,8 +669,12 @@ const ROOMS = [
         wrongTitle: "惜しい!",
         wrongBody: "降圧薬だけでは <b>患者さんの恐怖は消えない</b>し、下がりすぎるリスクもある。<br>手術中止は過剰対応。<b>まず心のケアと少量の鎮静</b> が正解。"
       },
-      { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "佐藤さん、大丈夫ですよ。あと10分で終わります。少し眠くなるお薬を追加しますね。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺", text: "佐藤さん、大丈夫ですよ。あと10分で終わります。少し眠くなるお薬を追加しますね。" },
       { type: "dialogue", speaker: "佐藤幸子さん(患者)", side: "other", icon: "👵", text: "…先生、ありがとう…" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "看護師のさくらさん、<b>麻酔科のわかばやし先生を呼んできて</b>。オペが終わるまで、<b>彼女にこの部屋は対応してもらおう</b>。" },
+      { type: "dialogue", speaker: "さくらさん(看護師)", side: "other", icon: "👩‍⚕️",
+        text: "ありがとうございます。安心ですね。" },
       { type: "narration", text: "ミダゾラム(鎮静剤)を投与すれば、少し気持ちを落ち着かせて、うとうと眠くなります。<br>でも、実は <b>気をつけないといけないこと</b> があります。" },
       { type: "question",
         prompt: "Q2:ミダゾラム(鎮静剤)を投与しました。<b>気をつけることは?</b>",
@@ -691,7 +718,10 @@ const ROOMS = [
       { type: "vitalsChange", vitals: { hr: 130, sbp: 75, dbp: 45, spo2: 95, etco2: 32 }, duration: MEDIUM },
       { type: "vitalsChange", vitals: { hr: 155, sbp: 62, dbp: 35, spo2: 92, etco2: 28 }, duration: MEDIUM },
       { type: "alert", text: "ピロピロ!! 緊急コール!!" },
-      { type: "narration", text: "看護師「先生!顔と胸に<b>真っ赤な発疹</b>が広がってます!ゼーゼーいう<b>喘鳴</b>も!」" },
+      { type: "dialogue", speaker: "まつしまさん(看護師)", side: "other", icon: "👩‍⚕️",
+        text: "先生!顔と胸に<b>真っ赤な発疹</b>が広がってます!ゼーゼーいう<b>喘鳴</b>も!" },
+      { type: "dialogue", speaker: "たいはく先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "<b>SV 呼んで!</b>" },
       { type: "multiQuestion",
         prompt: "Q1:モニターのどこに異常がある?<b>当てはまるもの、全部選んで!</b>(複数選択できます)",
         choices: [
@@ -729,10 +759,27 @@ const ROOMS = [
         wrongBody: "抗ヒスタミンや輸液だけでは<b>命は助からない</b>。アナフィラキシーは <b>アドレナリンが第一選択</b>。<br>全身麻酔中は点滴があるので <b>希釈して静脈内投与</b>、院外や点滴なしなら <b>筋肉注射</b>。"
       },
       { type: "narration", text: "アドレナリンを希釈して静脈内投与。ゆっくり効いてきます…" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "<b>アナフィラキシーですか?</b>" },
+      { type: "dialogue", speaker: "たいはく先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "はい。<b>ロクロニウム</b>を投与した直後から、<b>顔と胸に発疹</b>が出て、<b>喘鳴</b>が出現しました。<b>血圧が 62/35 まで低下</b>し、脈は <b>155</b> まで速くなっています。<b>アナフィラキシー</b>と判断し、<b>アドレナリンを希釈して静脈内に少量ずつ投与</b>しました。" },
       { type: "vitalsChange", vitals: { hr: 135, sbp: 78, dbp: 48, spo2: 95 }, duration: MEDIUM },
       { type: "vitalsChange", vitals: { hr: 120, sbp: 90, dbp: 55, spo2: 97, etco2: 33 }, duration: MEDIUM },
       { type: "vitalsChange", vitals: { hr: 110, sbp: 100, dbp: 62, spo2: 99, etco2: 35 }, duration: MEDIUM },
-      { type: "narration", text: "アドレナリンでゆうくんの血圧と呼吸が回復!救命成功!<br>手術は延期、お母さんが泣いて喜んでいます。「本当に、本当にありがとうございます…!」" },
+      { type: "narration", text: "アドレナリンでゆうくんの血圧と呼吸が回復!<b>救命成功!</b>" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "<b>初期対応、よくできたね。</b>一旦 ICU で <b>気道のむくみ</b> を観察しよう。" },
+      { type: "dialogue", speaker: "外科医", side: "other", icon: "🔪",
+        text: "ご家族に説明してきますね。<b>麻酔は覚さずに ICU</b> ですか?" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "そうですね、<b>このまま ICU に移動</b>させます。" },
+      { type: "dialogue", speaker: "まつしまさん(看護師)", side: "other", icon: "👩‍⚕️",
+        text: "<b>ICU に伝えます。</b>" },
+      { type: "dialogue", speaker: "たいはく先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "私は<b>アナフィラキシーショックを経験したのが初めて</b>です。<b>シミュレーションを常にしていました</b>ので、とても役に立ちました。患者さんを <b>ICU に責任を持って連れていきます</b>。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "お願いしますね、たいはく先生。" },
+      { type: "narration", text: "手術は延期。<br>お母さんが泣いて喜んでいます。「本当に、本当にありがとうございます…!」" },
       { type: "roomComplete", outcome: "アドレナリンで救命、後日再手術予定。アレルギー検査へ。" }
     ]
   },
@@ -747,18 +794,32 @@ const ROOMS = [
       surgery: "帝王切開術・分娩終了直後<br>麻酔法:<b>脊髄くも膜下麻酔(下半身のみ麻酔、意識あり)</b>"
     },
     staff: { anes: "しおがま先生", nurse: "みやぎのさん" },
-    initialVitals: { hr: 88, sbp: 118, dbp: 72, spo2: 99, etco2: 35, bis: 92, temp: 36.4 },
+    hiddenVitals: ["bis", "co2"],   // 脊髄くも膜下麻酔:BIS は貼っておらず、挿管もしていないので EtCO₂ も出ない
+    initialVitals: { hr: 88, sbp: 118, dbp: 72, spo2: 99, temp: 36.4 },
     stages: [
-      { type: "narration", text: "OR6 に入りました。<br><b>小林彩花さん、32 歳女性</b>。初産の帝王切開で、<b>赤ちゃんは無事に誕生</b>しました。<br>麻酔は <b>脊髄くも膜下麻酔</b>(下半身のみ麻酔)。<b>意識はハッキリしています</b>(BIS 92)。" },
+      { type: "narration", text: "OR6 に入りました。<br><b>小林彩花さん、32 歳女性</b>。初産の帝王切開で、<b>赤ちゃんは無事に誕生</b>しました。<br>麻酔は <b>脊髄くも膜下麻酔</b>(下半身のみ麻酔)。<b>意識はハッキリしています</b>。" },
+      { type: "narration", text: "モニターを見てみましょう。<br>この部屋には <b>BIS(脳波)も EtCO₂(呼気の二酸化炭素)も出ていません</b>。<br>下半身だけの麻酔で <b>眠っていないので BIS は貼らず</b>、<b>口に管を入れていないので EtCO₂ も測れない</b> — 麻酔の方法によって、見るモニターは変わります。" },
       { type: "dialogue", speaker: "小林彩花さん(お母さん)", side: "other", icon: "🤱", text: "先生、ありがとうございます…赤ちゃん、可愛い…" },
-      { type: "narration", text: "赤ちゃんは NICU に移され、お母さんの手術も終わろうとしていた、その時…" },
+      { type: "narration", text: "赤ちゃんは <b>NICU(新生児集中治療室)</b> に運ばれ、お母さんの手術も終わろうとしていた、その時…" },
       { type: "vitalsChange", vitals: { hr: 100, sbp: 105, dbp: 62 }, duration: MEDIUM },
-      { type: "narration", text: "産科医「先生!子宮からの<b>出血が止まらない</b>!」" },
-      { type: "vitalsChange", vitals: { hr: 115, sbp: 90, dbp: 55, bis: 82 }, duration: MEDIUM },
-      { type: "narration", text: "「1500mL 超えました…まだ出続けてる」<br>お母さんの反応が少し鈍くなってきた(BIS も少し下がった)。" },
-      { type: "vitalsChange", vitals: { hr: 128, sbp: 78, dbp: 45, spo2: 96, bis: 55 }, duration: MEDIUM },
+      { type: "dialogue", speaker: "産科医", side: "other", icon: "🔪",
+        text: "先生!子宮からの<b>出血が止まらない</b>!" },
+      { type: "vitalsChange", vitals: { hr: 115, sbp: 90, dbp: 55 }, duration: MEDIUM },
+      { type: "dialogue", speaker: "みやぎのさん(看護師)", side: "other", icon: "👩‍⚕️",
+        text: "<b>出血 1500mL を超えました</b>…まだ出続けてます。" },
+      { type: "dialogue", speaker: "小林彩花さん(お母さん)", side: "other", icon: "🤱",
+        text: "先生…なんだか<b>気分が悪い</b>です…" },
+      { type: "narration", text: "しおがま先生が、小林さんに <b>マスクで酸素投与</b> を開始します。" },
+      { type: "dialogue", speaker: "しおがま先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "出血が多くなっているから、<b>SV コール</b>しよう。" },
+      { type: "vitalsChange", vitals: { hr: 128, sbp: 78, dbp: 45, spo2: 96 }, duration: MEDIUM },
       { type: "alert", text: "ピロピロ!! 緊急!! 出血 3000mL!" },
-      { type: "narration", text: "産科医「<b>すでに 3000mL の出血</b>!<b>お母さんの意識が薄れています</b>(BIS 55)!」" },
+      { type: "dialogue", speaker: "しおがま先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "SV、お疲れ様です。<b>分娩後の出血</b>です。<b>3000mL を超えていそう</b>です。現段階では <b>酸素投与</b> しており、<b>全身麻酔に切り替えること</b>も考えています。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "外科の先生、<b>状況はどうですか?</b>" },
+      { type: "dialogue", speaker: "産科医", side: "other", icon: "🔪",
+        text: "<b>子宮が弛緩</b>しています。出血はなかなか止まらないです。" },
       { type: "question",
         prompt: "Q1:分娩後の大量出血。<b>最優先の対応は?</b>",
         choices: [
@@ -771,16 +832,35 @@ const ROOMS = [
         wrongTitle: "危険!",
         wrongBody: "子宮からの出血は<b>圧迫では止まらない</b>。<br>昇圧薬だけでは血液がない状態で血管を締めるだけ。<b>まず輸血+子宮収縮薬</b>が必須。躊躇は死に直結。"
       },
-      { type: "narration", text: "総勢 10 人以上のスタッフが集結。輸血、子宮収縮薬、太いライン追加、みんなで対応!" },
-      { type: "vitalsChange", vitals: { hr: 118, sbp: 88, dbp: 52, bis: 62 }, duration: MEDIUM },
+      { type: "narration", text: "<b>麻酔科、産科、研修医、総勢 10 名以上の医師が集結</b>。<b>看護師も応援に駆けつけました。</b><br>輸血、子宮収縮薬、太いライン追加 — みんなで同時に対応します!" },
+      { type: "vitalsChange", vitals: { hr: 118, sbp: 88, dbp: 52 }, duration: MEDIUM },
       { type: "narration", text: "少しずつ効いてきています…血圧が上がり始めた。" },
-      { type: "vitalsChange", vitals: { hr: 105, sbp: 98, dbp: 60, spo2: 98, bis: 72 }, duration: MEDIUM },
-      { type: "narration", text: "お母さんの意識も戻ってきた(BIS 72)。もう少しで安定します。" },
-      { type: "vitalsChange", vitals: { hr: 95, sbp: 108, dbp: 68, spo2: 99, bis: 80 }, duration: MEDIUM },
-      { type: "narration", text: "血圧も心拍もほぼ正常範囲に。出血もようやく止まりそうです。<br>お母さんの意識もハッキリしてきた(BIS 80台に回復)。" },
+      { type: "vitalsChange", vitals: { hr: 105, sbp: 98, dbp: 60, spo2: 98 }, duration: MEDIUM },
+      { type: "dialogue", speaker: "みやぎのさん(看護師)", side: "other", icon: "👩‍⚕️",
+        text: "小林さん、大丈夫?" },
+      { type: "dialogue", speaker: "小林彩花さん(お母さん)", side: "other", icon: "🤱",
+        text: "さっきよりは<b>気分が落ち着きました</b>。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "<b>輸血と輸液、子宮収縮薬</b>で改善しているね。" },
+      { type: "dialogue", speaker: "しおがま先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "<b>全身麻酔はせずに様子を見ます。</b>" },
+      { type: "dialogue", speaker: "産科医", side: "other", icon: "🔪",
+        text: "さっきより<b>子宮の収縮がいい</b>です。輸血はしてますか?" },
+      { type: "dialogue", speaker: "しおがま先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "<b>赤血球</b>と<b>新鮮凍結血漿</b>を入れてます。" },
+      { type: "dialogue", speaker: "産科医", side: "other", icon: "🔪",
+        text: "ありがとう先生。<b>血液も固まりやすくなってる</b>。このまま<b>閉創</b>できそうだよ。" },
+      { type: "dialogue", speaker: "しおがま先生(担当麻酔科医)", side: "other", icon: "🧑‍⚕️",
+        text: "<b>尿の色は問題なし</b>。尿も出てきました。" },
+      { type: "vitalsChange", vitals: { hr: 95, sbp: 108, dbp: 68, spo2: 99 }, duration: MEDIUM },
       { type: "vitalsChange", vitals: { hr: 88, sbp: 115, dbp: 72 }, duration: MEDIUM },
-      { type: "narration", text: "小林彩花さんの意識が戻ります。「…先生…赤ちゃん…?」" },
-      { type: "dialogue", speaker: "あなた(SV)", side: "you", text: "赤ちゃんは元気ですよ。お母さんも命は助かりました。明日には抱っこできますからね。" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺",
+        text: "<b>バイタル安定してきた。ショックインデックスも落ち着いている。</b>" },
+      { type: "narration", text: "🧠 <b>ショックインデックス(SI)って?</b><br><b>心拍数 ÷ 上の血圧</b>、それだけの計算です。<br>ふつうは <b>0.5〜0.7 くらい</b>。出血して血が足りなくなると、体は「<b>脈を速くして</b>」なんとかしようとし、それでも足りなくなると「<b>血圧が下がって</b>」きます。<br>だから <b>脈が速い ÷ 血圧が低い = 数字が大きくなる</b>。<b>数字が大きいほど危ない</b>、という目印です。" },
+      { type: "narration", text: "小林さんの数字を見てみましょう。<br>・いちばん悪かったとき:脈 <b>128</b> ÷ 血圧 <b>78</b> = <b>約 1.6</b> → かなり危険<br>・今:脈 <b>88</b> ÷ 血圧 <b>115</b> = <b>約 0.8</b> → 落ち着いてきた<br><br>血圧の数字だけを見ていると「まだ 78 あるから大丈夫」と思ってしまう。<b>脈と一緒に見る</b> ことで、体が無理をしているかどうかが分かります。" },
+      { type: "dialogue", speaker: "小林彩花さん(お母さん)", side: "other", icon: "🤱",
+        text: "先生…<b>赤ちゃん、大丈夫ですか…?</b>" },
+      { type: "dialogue", speaker: "あなた(SV)", side: "you", icon: "🩺", text: "赤ちゃんは元気ですよ。お母さんも命は助かりました。明日には抱っこできますからね。" },
       { type: "roomComplete", outcome: "大量輸血+子宮収縮薬で救命、翌日には赤ちゃんを抱っこ。命が 2 つ助かった。" }
     ]
   }
@@ -980,6 +1060,28 @@ function ecgSTVal(phase) {
   if (phase >= 0.29 && phase < 0.42) return base + 0.28;
   return base;
 }
+// ブルガダ症候群:サドルバック型(type 2)の ST 上昇
+// J 点が高く跳ね上がり(r')、いったん下がってから陽性 T 波へ — 鞍(サドル)のような形
+function ecgBrugadaVal(phase) {
+  if (phase < 0.29) return ecgVal(phase);                 // P・QRS はそのまま
+  if (phase < 0.33) {                                     // J 点が高く立ち上がる
+    const x = (phase - 0.29) / 0.04;
+    return 0.42 * Math.sin(x * Math.PI / 2);
+  }
+  if (phase < 0.44) {                                     // 鞍の谷(基線までは下がらない)
+    const x = (phase - 0.33) / 0.11;
+    return 0.42 - 0.26 * Math.sin(x * Math.PI / 2);
+  }
+  if (phase < 0.58) {                                     // 陽性 T 波でもう一度盛り上がる
+    const x = (phase - 0.44) / 0.14;
+    return 0.16 + Math.sin(x * Math.PI) * 0.26;
+  }
+  if (phase < 0.63) {                                     // 基線へ戻る
+    const x = (phase - 0.58) / 0.05;
+    return 0.16 * (1 - x);
+  }
+  return 0;
+}
 // 高K血症:T波が高く尖る(テント状T波)
 function ecgHyperKVal(phase) {
   if (phase < 0.10) return 0;
@@ -1133,6 +1235,7 @@ function waveLoop() {
       let ecgFn = ecgVal;
       if (state.ecgMode === "st_elevation") ecgFn = ecgSTVal;
       else if (state.ecgMode === "hyperK") ecgFn = ecgHyperKVal;
+      else if (state.ecgMode === "brugada") ecgFn = ecgBrugadaVal;
       drawWave(waves.ecg, "#00ff66", ecgFn, p, SPEED_FAST);
       const pp = Math.min(1.0, Math.max(0.2, ((v.sbp || 120) - (v.dbp || 70)) / 50));
       drawWave(waves.pleth, "#00d4ff", (ph) => plethVal(ph, pp), p, SPEED_FAST);
@@ -1220,9 +1323,11 @@ function renderHeader() {
 }
 
 function renderRoomTitle(room) {
-  const staff = room.staff
-    ? `<div class="staff">🧑‍⚕️ 担当麻酔科医:${room.staff.anes}　👩‍⚕️ 看護師:${room.staff.nurse}</div>`
-    : "";
+  // 局所麻酔の部屋など、担当麻酔科医がついていない場合は看護師だけ表示
+  const parts = [];
+  if (room.staff && room.staff.anes)  parts.push(`🧑‍⚕️ 担当麻酔科医:${room.staff.anes}`);
+  if (room.staff && room.staff.nurse) parts.push(`👩‍⚕️ 看護師:${room.staff.nurse}`);
+  const staff = parts.length ? `<div class="staff">${parts.join("　")}</div>` : "";
   return `
     <div class="room-title">
       <div class="avatar">${room.patient.avatar}</div>
@@ -1253,6 +1358,10 @@ function renderMonitor() {
   const artMap = state.artLine ? Math.round((state.art.sbp + 2 * state.art.dbp) / 3) : "—";
   const h = state.highlightTarget;
   const hl = (name) => h === name ? "hl" : "";
+  // その部屋で測っていない項目は行ごと出さない(例:脊髄くも膜下麻酔で BIS・EtCO₂ なし)
+  const room = ROOMS[state.currentRoomIdx] || {};
+  const hidden = room.hiddenVitals || [];
+  const show = (name) => !hidden.includes(name);
   return `
     <div class="monitor" id="monitor">
       <div class="label-cell ${hl("hr")}">
@@ -1283,17 +1392,21 @@ function renderMonitor() {
       </div>
       <div class="wave-cell"><canvas id="pleth"></canvas></div>
 
+      ${show("co2") ? `
       <div class="label-cell ${hl("co2")}">
         <span class="name v-co2">EtCO₂</span><span class="unit">(mmHg)</span>
         <span class="value v-co2 ${etCls}" id="val-co2">${v.etco2}</span>
       </div>
       <div class="wave-cell"><canvas id="capno"></canvas></div>
+      ` : ""}
 
+      ${show("bis") ? `
       <div class="label-cell ${hl("bis")}">
         <span class="name v-bis">BIS</span><span class="unit">(0-100)</span>
         <span class="value v-bis" id="val-bis">${v.bis}</span>
       </div>
       <div class="wave-cell"><canvas id="eeg"></canvas></div>
+      ` : ""}
 
       <div class="label-cell ${hl("temp")}">
         <span class="name v-temp">体温</span><span class="unit">(℃)</span>
@@ -1395,7 +1508,7 @@ function enterRoom(idx) {
   state.currentRoomIdx = idx;
   state.currentStageIdx = 0;
   state.highlightTarget = null;
-  state.ecgMode = null;
+  state.ecgMode = ROOMS[idx].ecgMode || null;   // 入室時から出ている心電図所見(例:OR3 のブルガダ)
   state.bpUnmeasurable = false;
   state.bpMeasuring = false;
   state.spo2Unmeasurable = false;
